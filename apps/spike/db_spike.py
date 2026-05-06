@@ -417,11 +417,8 @@ def run_v9() -> None:
                 ),
             )
 
-        deadline = time.time() + 5
-        while time.time() < deadline and len(notifications) < 5:
-            listener.wait(0.5)
-            for notify in listener.notifies():
-                notifications.append(notify.payload)
+        for notify in listener.notifies(timeout=5, stop_after=5):
+            notifications.append(notify.payload)
 
     with connect() as conn:
         rows = conn.execute(
