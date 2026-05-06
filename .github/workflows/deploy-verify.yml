@@ -129,20 +129,19 @@ jobs:
 
       - name: Link Vercel project
         run: |
-          mkdir -p apps/web/.vercel
+          mkdir -p .vercel
           python - <<'PY'
           import json
           import os
           from pathlib import Path
 
-          Path("apps/web/.vercel/project.json").write_text(json.dumps({
+          Path(".vercel/project.json").write_text(json.dumps({
               "orgId": os.environ["VERCEL_ORG_ID"],
               "projectId": os.environ["VERCEL_PROJECT_ID"],
           }))
           PY
 
       - name: Build and deploy Vercel preview
-        working-directory: apps/web
         run: |
           pnpm dlx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
           pnpm dlx vercel build --token "$VERCEL_TOKEN"
