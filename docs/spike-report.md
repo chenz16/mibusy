@@ -1,11 +1,11 @@
 # Week 0 Spike Report
 
-Status: in progress
+Status: in progress; W0 DB runtime checks passed in GitHub Actions, Fly/Vercel deployment checks still open
 
 ## Environment
 
 - Repo scaffold: created
-- Local Postgres + pgvector: blocked in this environment because Docker daemon access is denied and local `postgres`/`psql` binaries are not installed
+- Local Postgres + pgvector: blocked in this environment because Docker daemon access is denied and local `postgres`/`psql` binaries are not installed. Runtime DB verification was run in GitHub Actions instead.
 - DB runner: `pnpm db:preflight` checks Postgres/pgcrypto/pgvector/role permissions; `pnpm db:migrate` uses Python/psycopg instead of requiring local `psql`; `pnpm spike:db-all` runs V7-V11 once a Postgres URL is available
 - Anthropic API key: available for this test run, used only as a temporary environment variable
 - Claude Code CLI: installed locally via `@anthropic-ai/claude-code@2.1.129`
@@ -23,7 +23,7 @@ Status: in progress
 - Worker unit tests: `PYTHONPATH=apps/worker/src python -m pytest apps/worker/tests` passed, 7 tests
 - Worker Fly config: `apps/worker/fly.toml.example` pins one VM, immediate deploy strategy, and `/var/agent-workspaces` persistent mount
 - Offline verification bundle: `pnpm verify:offline` runs web build, TS typecheck, artifact audit, and worker tests. SQL parser audit runs when `pglast` is installed; strict parser evidence is tracked separately via `. .venv/bin/activate && python apps/spike/artifact_audit.py`.
-- DB runtime CI: `.github/workflows/db-spike.yml` provisions `pgvector/pgvector:pg16` and runs `db:preflight`, `db:migrate`, and `spike:db-all` for V7-V11 when GitHub Actions is available.
+- DB runtime CI: `.github/workflows/db-spike.yml` provisions `pgvector/pgvector:pg16` and runs `db:preflight`, `db:migrate`, and `spike:db-all` for V7-V11. Run `25416486743` passed on branch `stage1-agent-platform-verify`.
 - Dev server: running at `http://localhost:3000`; Next reported file watcher `ENOSPC` warnings, but the page rendered successfully via `curl`
 
 ## V1 SDK 创建 session + streaming events
@@ -81,40 +81,40 @@ Status: in progress
 
 ## V7 Signup bootstrap
 
-- Status: blocked locally
-- Command: `python apps/spike/db_spike.py v7`
+- Status: passed in GitHub Actions; blocked locally
+- Command: `pnpm spike:db-all` in DB Spike workflow run `25416486743`
 - Expected: new invited user reaches dashboard within 30 seconds
-- Observed output: DB harness and Next API bootstrap endpoint implemented; not run end-to-end because this machine cannot access Docker daemon and has no local Postgres binaries. `pnpm --filter web build` shows `/api/auth/bootstrap` is included as a dynamic route.
-- Architecture impact:
+- Observed output: V7 passed on real `pgvector/pgvector:pg16`: tenant created, user created as tenant owner, platform role inherited from invitation, invitation consumed.
+- Architecture impact: bootstrap data model matches Stage 1: a friend invitation creates a new tenant where the user is tenant `owner` and platform-level `friend`.
 
 ## V8 Bootstrap 异常路径
 
-- Status: blocked locally
-- Command: `python apps/spike/db_spike.py v8`
+- Status: passed in GitHub Actions; blocked locally
+- Command: `pnpm spike:db-all` in DB Spike workflow run `25416486743`
 - Expected: expired/used/invalid invites are rejected without dirty data
-- Observed output: DB harness and Next invite validation endpoint implemented; not run end-to-end because this machine cannot access Docker daemon and has no local Postgres binaries. `pnpm --filter web build` shows `/api/invite/[code]` is included as a dynamic route.
-- Architecture impact:
+- Observed output: expired, used, and missing invitation paths all rejected; tenant/user row counts remained clean.
+- Architecture impact: bootstrap transaction boundaries are adequate for invalid invitation paths.
 
 ## V9 LISTEN/NOTIFY on Vercel
 
-- Status: blocked locally
-- Local command: `python apps/spike/db_spike.py v9`
+- Status: local DB semantics passed in GitHub Actions; Vercel Pro runtime not tested
+- Command: `pnpm spike:db-all` in DB Spike workflow run `25416486743`
 - Expected: polling replay semantics pass; LISTEN/NOTIFY can be compared later on Vercel Pro
-- Observed output: not run because this machine cannot access Docker daemon and has no local Postgres binaries.
-- Architecture impact: no architecture change; scripts and migration are present for a machine with Postgres.
+- Observed output: LISTEN/NOTIFY delivered five notifications and since replay returned seq `[1, 2, 3, 4, 5]`.
+- Architecture impact: DB event log and replay semantics are sound. Vercel deployment behavior remains a separate runtime check.
 
 ## V10 jobs 表 SKIP LOCKED 多 worker 拉取
 
-- Status: blocked locally
-- Command: `python apps/spike/db_spike.py v10`
+- Status: passed in GitHub Actions; blocked locally
+- Command: `pnpm spike:db-all` in DB Spike workflow run `25416486743`
 - Expected: no duplicate job consumption under concurrent workers
-- Observed output: not run because this machine cannot access Docker daemon and has no local Postgres binaries.
-- Architecture impact:
+- Observed output: 8 workers claimed 50 jobs; all 50 claimed and no duplicate consumption.
+- Architecture impact: Postgres `FOR UPDATE SKIP LOCKED` is viable for Stage 1 queue semantics.
 
 ## V11 RLS 跨租户隔离 E2E
 
-- Status: blocked locally
-- Command: `python apps/spike/db_spike.py v11`
+- Status: passed in GitHub Actions; blocked locally
+- Command: `pnpm spike:db-all` in DB Spike workflow run `25416486743`
 - Expected: read/write/list/aggregate/JWT claim switch checks pass
-- Observed output: not run because this machine cannot access Docker daemon and has no local Postgres binaries.
-- Architecture impact:
+- Observed output: read isolation, own-tenant write, cross-tenant write rejection, list isolation, aggregate isolation, and JWT claim switch all passed.
+- Architecture impact: JWT custom claim RLS policy shape is viable for Stage 1 tenant isolation.
