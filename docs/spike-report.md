@@ -23,7 +23,7 @@ Status: in progress; W0 DB runtime checks passed in GitHub Actions, Fly/Vercel d
 - Worker unit tests: `PYTHONPATH=apps/worker/src python -m pytest apps/worker/tests` passed, 7 tests
 - Worker Fly config: `apps/worker/fly.toml.example` pins one VM, immediate deploy strategy, and `/var/agent-workspaces` persistent mount
 - Offline verification bundle: `pnpm verify:offline` runs web build, TS typecheck, artifact audit, and worker tests. SQL parser audit runs when `pglast` is installed; strict parser evidence is tracked separately via `. .venv/bin/activate && python apps/spike/artifact_audit.py`. GitHub Actions Offline Verify run `25416607958` passed on branch `stage1-agent-platform-verify`.
-- DB runtime CI: `.github/workflows/db-spike.yml` provisions `pgvector/pgvector:pg16` and runs `db:preflight`, `db:migrate`, and `spike:db-all` for V7-V11. Run `25416647604` passed on branch `stage1-agent-platform-verify`.
+- DB runtime CI: `.github/workflows/db-spike.yml` provisions `pgvector/pgvector:pg16` and runs `db:preflight`, `db:migrate`, `spike:db-all` for V7-V11, and a Next.js invite/bootstrap HTTP E2E. Run `25416814966` passed on branch `stage1-agent-platform-verify`.
 - Dev server: running at `http://localhost:3000`; Next reported file watcher `ENOSPC` warnings, but the page rendered successfully via `curl`
 
 ## V1 SDK 创建 session + streaming events
@@ -82,15 +82,15 @@ Status: in progress; W0 DB runtime checks passed in GitHub Actions, Fly/Vercel d
 ## V7 Signup bootstrap
 
 - Status: passed in GitHub Actions; blocked locally
-- Command: `pnpm spike:db-all` in DB Spike workflow run `25416647604`
+- Command: `pnpm spike:db-all` plus `pnpm spike:web-api` in DB Spike workflow run `25416814966`
 - Expected: new invited user reaches dashboard within 30 seconds
-- Observed output: V7 passed on real `pgvector/pgvector:pg16`: tenant created, user created as tenant owner, platform role inherited from invitation, invitation consumed.
+- Observed output: V7 passed on real `pgvector/pgvector:pg16`: tenant created, user created as tenant owner, platform role inherited from invitation, invitation consumed. HTTP E2E also passed: `/api/invite/:code` returned the invite, `/api/auth/bootstrap` created the tenant/user, cleared the cookie, and consumed the invitation.
 - Architecture impact: bootstrap data model matches Stage 1: a friend invitation creates a new tenant where the user is tenant `owner` and platform-level `friend`.
 
 ## V8 Bootstrap 异常路径
 
 - Status: passed in GitHub Actions; blocked locally
-- Command: `pnpm spike:db-all` in DB Spike workflow run `25416647604`
+- Command: `pnpm spike:db-all` in DB Spike workflow run `25416814966`
 - Expected: expired/used/invalid invites are rejected without dirty data
 - Observed output: expired, used, and missing invitation paths all rejected; tenant/user row counts remained clean.
 - Architecture impact: bootstrap transaction boundaries are adequate for invalid invitation paths.
@@ -98,7 +98,7 @@ Status: in progress; W0 DB runtime checks passed in GitHub Actions, Fly/Vercel d
 ## V9 LISTEN/NOTIFY on Vercel
 
 - Status: local DB semantics passed in GitHub Actions; Vercel Pro runtime not tested
-- Command: `pnpm spike:db-all` in DB Spike workflow run `25416647604`
+- Command: `pnpm spike:db-all` in DB Spike workflow run `25416814966`
 - Expected: polling replay semantics pass; LISTEN/NOTIFY can be compared later on Vercel Pro
 - Observed output: LISTEN/NOTIFY delivered five notifications and since replay returned seq `[1, 2, 3, 4, 5]`.
 - Architecture impact: DB event log and replay semantics are sound. Vercel deployment behavior remains a separate runtime check.
@@ -106,7 +106,7 @@ Status: in progress; W0 DB runtime checks passed in GitHub Actions, Fly/Vercel d
 ## V10 jobs 表 SKIP LOCKED 多 worker 拉取
 
 - Status: passed in GitHub Actions; blocked locally
-- Command: `pnpm spike:db-all` in DB Spike workflow run `25416647604`
+- Command: `pnpm spike:db-all` in DB Spike workflow run `25416814966`
 - Expected: no duplicate job consumption under concurrent workers
 - Observed output: 8 workers claimed 50 jobs; all 50 claimed and no duplicate consumption.
 - Architecture impact: Postgres `FOR UPDATE SKIP LOCKED` is viable for Stage 1 queue semantics.
@@ -114,7 +114,7 @@ Status: in progress; W0 DB runtime checks passed in GitHub Actions, Fly/Vercel d
 ## V11 RLS 跨租户隔离 E2E
 
 - Status: passed in GitHub Actions; blocked locally
-- Command: `pnpm spike:db-all` in DB Spike workflow run `25416647604`
+- Command: `pnpm spike:db-all` in DB Spike workflow run `25416814966`
 - Expected: read/write/list/aggregate/JWT claim switch checks pass
 - Observed output: read isolation, own-tenant write, cross-tenant write rejection, list isolation, aggregate isolation, and JWT claim switch all passed.
 - Architecture impact: JWT custom claim RLS policy shape is viable for Stage 1 tenant isolation.
