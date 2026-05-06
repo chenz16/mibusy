@@ -43,6 +43,7 @@ REQUIRED_PATHS = [
     "apps/worker/tests/test_sdk_runner.py",
     "apps/spike/claude_sdk_spike.py",
     "apps/spike/db_spike.py",
+    "apps/spike/web_api_e2e.py",
     "apps/spike/requirements.txt",
     "packages/db/migrations/0001_init.sql",
     "packages/shared-types/package.json",
@@ -134,6 +135,9 @@ def main() -> None:
     for command in ['"preflight"', '"migrate"', '"all"', '"v7"', '"v8"', '"v9"', '"v10"', '"v11"']:
         assert_contains("DB harness", db_harness, command)
     assert_contains("DB harness", db_harness, "FOR UPDATE SKIP LOCKED")
+    web_api_harness = (ROOT / "apps/spike/web_api_e2e.py").read_text()
+    assert_contains("web API harness", web_api_harness, "/api/invite/")
+    assert_contains("web API harness", web_api_harness, "/api/auth/bootstrap")
 
     worker_db = (ROOT / "apps/worker/src/solo_agent_worker/db.py").read_text()
     assert_contains("worker DB", worker_db, "FOR UPDATE SKIP LOCKED")

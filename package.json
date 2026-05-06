@@ -23,7 +23,8 @@
     "spike:v9": "python apps/spike/db_spike.py v9",
     "spike:v10": "python apps/spike/db_spike.py v10",
     "spike:v11": "python apps/spike/db_spike.py v11",
-    "spike:db-all": "python apps/spike/db_spike.py all"
+    "spike:db-all": "python apps/spike/db_spike.py all",
+    "spike:web-api": "python apps/spike/web_api_e2e.py"
   },
   "devDependencies": {
     "@anthropic-ai/claude-code": "^2.1.129",

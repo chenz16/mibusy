@@ -31,6 +31,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/solo_agent
       APP_DATABASE_URL: postgresql://app_user:app_password@localhost:5432/solo_agent
+      WEB_BASE_URL: http://127.0.0.1:3000
 
     steps:
       - uses: actions/checkout@v4
@@ -63,3 +64,20 @@ jobs:
       - name: Run V7-V11 DB checks
         run: pnpm spike:db-all
 
+      - name: Build web app for API E2E
+        run: pnpm --filter web build
+
+      - name: Start web app
+        run: |
+          pnpm --filter web start --hostname 127.0.0.1 --port 3000 > /tmp/solo-agent-web.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl -fsS "$WEB_BASE_URL/chat" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/solo-agent-web.log
+          exit 1
+
+      - name: Run web API invite bootstrap E2E
+        run: pnpm spike:web-api
