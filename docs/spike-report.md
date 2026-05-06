@@ -1,0 +1,120 @@
+# Week 0 Spike Report
+
+Status: in progress
+
+## Environment
+
+- Repo scaffold: created
+- Local Postgres + pgvector: blocked in this environment because Docker daemon access is denied and local `postgres`/`psql` binaries are not installed
+- DB runner: `pnpm db:preflight` checks Postgres/pgcrypto/pgvector/role permissions; `pnpm db:migrate` uses Python/psycopg instead of requiring local `psql`; `pnpm spike:db-all` runs V7-V11 once a Postgres URL is available
+- Anthropic API key: available for this test run, used only as a temporary environment variable
+- Claude Code CLI: installed locally via `@anthropic-ai/claude-code@2.1.129`
+- Python SDK: installed in `.venv`
+- Web typecheck: `pnpm --filter web typecheck` passed
+- Web production build: `pnpm --filter web build` passed, including `/chat`, `/tasks`, `/schedules`, `/inbox`, `/memory`, `/templates`, `/observe`, `/settings`
+- UI shell: Stage 1 control-plane navigation and 8 route skeletons implemented from `agent-platform-ui-design.md`
+- Shared types: `packages/shared-types` defines session status, session event payloads, job payload, and template contracts; web SSE route imports the shared `SessionEventPayloadByKind` contract
+- Artifact audit: `pnpm spike:audit` passed
+- Migration parser check: `. .venv/bin/activate && python apps/spike/artifact_audit.py` parsed `0001_init.sql` as 59 statements
+- Seed templates: `0001_init.sql` inserts five global templates (`general_assistant`, `research_agent`, `writer_agent`, `notifier_agent`, `scheduler_agent`) plus initial DAG edges
+- Seed DAG audit: `apps/spike/artifact_audit.py` statically checks seeded template invocation edges are acyclic
+- Worker compile/import check: `PYTHONPATH=apps/worker/src python -m py_compile $(find apps/worker/src apps/spike -name '*.py')` passed
+- Worker policy check: friend role strips `Bash` from requested tools; owner role can retain it
+- Worker unit tests: `PYTHONPATH=apps/worker/src python -m pytest apps/worker/tests` passed, 7 tests
+- Worker Fly config: `apps/worker/fly.toml.example` pins one VM, immediate deploy strategy, and `/var/agent-workspaces` persistent mount
+- Offline verification bundle: `pnpm verify:offline` runs web build, TS typecheck, artifact audit, and worker tests. SQL parser audit runs when `pglast` is installed; strict parser evidence is tracked separately via `. .venv/bin/activate && python apps/spike/artifact_audit.py`.
+- DB runtime CI: `.github/workflows/db-spike.yml` provisions `pgvector/pgvector:pg16` and runs `db:preflight`, `db:migrate`, and `spike:db-all` for V7-V11 when GitHub Actions is available.
+- Dev server: running at `http://localhost:3000`; Next reported file watcher `ENOSPC` warnings, but the page rendered successfully via `curl`
+
+## V1 SDK 创建 session + streaming events
+
+- Status: passed
+- Command: `HOME=/tmp/solo-agent-sdk-home ANTHROPIC_API_KEY=... PATH="$PWD/node_modules/.bin:$PATH" .venv/bin/python apps/spike/claude_sdk_spike.py v1`
+- Expected: assistant/tool_use/tool_result event stream
+- Test code snippet: see `apps/spike/claude_sdk_spike.py`
+- Observed output: `SystemMessage` init included `session_id`; stream included `AssistantMessage`, `ToolUseBlock(name='Bash')`, `ToolResultBlock`, and `ResultMessage(subtype='success')` with `total_cost_usd` and `usage`.
+- Architecture impact: session ID, cost, and usage are observable. Running with a clean `HOME` is required; otherwise user-level Claude Code MCP/plugins/skills are loaded and pollute tool surface/cost.
+
+## V2 Tool permission callback
+
+- Status: failed with fallback required
+- Command: `HOME=/tmp/solo-agent-sdk-home ANTHROPIC_API_KEY=... PATH="$PWD/node_modules/.bin:$PATH" .venv/bin/python apps/spike/claude_sdk_spike.py v2`
+- Expected: dangerous tool call can be intercepted before execution
+- Observed output: callback was not called in either tested configuration. With `Bash` in `allowed_tools`, Bash executed directly. With `allowed_tools=[]` and `can_use_tool` returning deny for Bash, Bash still executed and `PERMISSION_DECISIONS []` was printed. Additional `PreToolUse` hook probe in streaming mode also failed to block Bash: CLI printed `Error in hook callback ... Stream closed`, `PRETOOL_HOOK_INPUTS []`, and Bash still executed.
+- Architecture impact: do not rely on SDK `can_use_tool` or Python SDK hooks as the Stage 1 security boundary until this is resolved upstream or with a different SDK configuration. Fallback: run SDK with a minimal isolated `HOME` and use an external wrapper/allowlist plus filesystem sandboxing; dangerous tools must be absent from the execution environment for friend sessions.
+- Implementation note: worker config now applies this fallback by stripping dangerous tools from friend sessions before invoking the SDK.
+
+## V3 AskUserQuestion + resume
+
+- Status: partial
+- Command: `python apps/spike/claude_sdk_spike.py v3`
+- Expected: resume preserves session identity and cost accumulation; expired resume rejected
+- Observed output: `AskUserQuestion` tool is discoverable and callable. In headless SDK run it returned an error tool result (`Answer questions?`) instead of entering a durable awaiting-input state. Result still ended with `subtype='success'`; one retry event had `error_status=429`.
+- Architecture impact: native AskUserQuestion does not yet prove the `awaiting_input` FSM. Fallback likely needed: mirror `AskUserQuestion` tool_use into `inbox_items`, stop worker ownership, then resume using explicit SDK session ID after external answer.
+
+## V4 max_budget_usd
+
+- Status: partial
+- Command: `python apps/spike/claude_sdk_spike.py v4`
+- Expected: identifiable budget exception or hook-readable usage fallback
+- Observed output: stream emitted `ResultMessage(subtype='error_max_budget_usd', is_error=True, session_id=..., total_cost_usd=0.080988)`, then Python SDK raised generic `Exception('Command failed with exit code 1 ...')`.
+- Architecture impact: budget exceeded is identifiable from `ResultMessage.subtype`, but not from a typed Python exception. Worker must inspect result messages and treat generic exceptions as secondary signal.
+- Implementation note: worker SDK runner now treats `ResultMessage(subtype='error_max_budget_usd')` as terminal `failed` with reason `budget_exceeded`.
+
+## V5 Subagent tracing
+
+- Status: partial
+- Command: `HOME=/tmp/solo-agent-sdk-home ANTHROPIC_API_KEY=... PATH="$PWD/node_modules/.bin:$PATH" .venv/bin/python apps/spike/claude_sdk_spike.py v5`
+- Expected: child session ID and child cost/tokens are observable
+- Observed output: parent emitted `ToolUseBlock(name='Agent')`; system emitted `task_started` with `task_id` and parent `session_id`; `task_notification` included child usage (`total_tokens`, `tool_uses`, `duration_ms`); tool result included `agentId: <task_id>` plus usage text. `SubagentStop` hook did not fire.
+- Architecture impact: subagent identity is observable as `task_id`/`agentId`, not as an independent SDK session ID in this run. Cost/tokens are partly observable from task notification/tool result, but USD cost split must be derived by the platform. Mirror subagents into DB using platform-side child rows keyed by SDK `task_id`; `0001_init.sql` now includes `agent_sessions.sdk_task_id`.
+- Implementation note: worker event normalization preserves `task_started` / `task_notification` system events in `session_events` so task usage can be mirrored later.
+
+## V6 Session resume(volume 持久化)
+
+- Status: partial
+- Command: `HOME=/tmp/solo-agent-sdk-home ANTHROPIC_API_KEY=... PATH="$PWD/node_modules/.bin:$PATH" .venv/bin/python apps/spike/claude_sdk_spike.py v6`
+- Expected: same-machine reboot resume works; cross-machine failure is documented
+- Observed output: first run returned session id `527d2f19-471b-4539-acda-34834b8447d8`; second run with `ClaudeCodeOptions(resume=<session_id>)` initialized with the same session id and correctly recalled `resume-alpha-7319`. Fly config artifact exists, but reboot/volume persistence has not been deployed and tested.
+- Architecture impact: Python SDK `resume` takes the SDK session ID, not an explicit filesystem path. `sdk_session_path` should store the Claude Code project/memory root as supporting metadata; `sdk_session_id` is the primary resume handle and is now included in `0001_init.sql`.
+- Implementation note: worker stores `sdk_session_id` from SDK init events and passes `resume=<sdk_session_id>` when present in job payload.
+
+## V7 Signup bootstrap
+
+- Status: blocked locally
+- Command: `python apps/spike/db_spike.py v7`
+- Expected: new invited user reaches dashboard within 30 seconds
+- Observed output: DB harness and Next API bootstrap endpoint implemented; not run end-to-end because this machine cannot access Docker daemon and has no local Postgres binaries. `pnpm --filter web build` shows `/api/auth/bootstrap` is included as a dynamic route.
+- Architecture impact:
+
+## V8 Bootstrap 异常路径
+
+- Status: blocked locally
+- Command: `python apps/spike/db_spike.py v8`
+- Expected: expired/used/invalid invites are rejected without dirty data
+- Observed output: DB harness and Next invite validation endpoint implemented; not run end-to-end because this machine cannot access Docker daemon and has no local Postgres binaries. `pnpm --filter web build` shows `/api/invite/[code]` is included as a dynamic route.
+- Architecture impact:
+
+## V9 LISTEN/NOTIFY on Vercel
+
+- Status: blocked locally
+- Local command: `python apps/spike/db_spike.py v9`
+- Expected: polling replay semantics pass; LISTEN/NOTIFY can be compared later on Vercel Pro
+- Observed output: not run because this machine cannot access Docker daemon and has no local Postgres binaries.
+- Architecture impact: no architecture change; scripts and migration are present for a machine with Postgres.
+
+## V10 jobs 表 SKIP LOCKED 多 worker 拉取
+
+- Status: blocked locally
+- Command: `python apps/spike/db_spike.py v10`
+- Expected: no duplicate job consumption under concurrent workers
+- Observed output: not run because this machine cannot access Docker daemon and has no local Postgres binaries.
+- Architecture impact:
+
+## V11 RLS 跨租户隔离 E2E
+
+- Status: blocked locally
+- Command: `python apps/spike/db_spike.py v11`
+- Expected: read/write/list/aggregate/JWT claim switch checks pass
+- Observed output: not run because this machine cannot access Docker daemon and has no local Postgres binaries.
+- Architecture impact:

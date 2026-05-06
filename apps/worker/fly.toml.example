@@ -1,0 +1,25 @@
+app = "solo-agent-platform-worker"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "apps/worker/Dockerfile"
+
+[env]
+  AGENT_WORKSPACE_ROOT = "/var/agent-workspaces"
+  CLAUDE_HOME = "/var/agent-claude-home"
+  WORKER_POLL_INTERVAL_SECONDS = "2"
+  AGENT_MAX_TURNS = "10"
+
+[mounts]
+  source = "agent_workspaces"
+  destination = "/var/agent-workspaces"
+  initial_size = "10gb"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+  count = 1
+
+[deploy]
+  strategy = "immediate"
+

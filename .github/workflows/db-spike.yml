@@ -1,0 +1,65 @@
+name: DB Spike
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/spike/db_spike.py"
+      - "packages/db/migrations/**"
+      - ".github/workflows/db-spike.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+jobs:
+  db-spike:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: solo_agent
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d solo_agent"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/solo_agent
+      APP_DATABASE_URL: postgresql://app_user:app_password@localhost:5432/solo_agent
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Python spike dependencies
+        run: python -m pip install -r apps/spike/requirements.txt
+
+      - name: Preflight database
+        run: pnpm db:preflight
+
+      - name: Apply migration
+        run: pnpm db:migrate
+
+      - name: Run V7-V11 DB checks
+        run: pnpm spike:db-all
+

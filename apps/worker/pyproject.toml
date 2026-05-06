@@ -1,0 +1,21 @@
+[project]
+name = "solo-agent-worker"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "claude-code-sdk>=0.0.20",
+  "psycopg[binary]>=3.2.3",
+  "python-dotenv>=1.0.1"
+]
+
+[project.scripts]
+solo-agent-worker = "solo_agent_worker.main:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.3"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

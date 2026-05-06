@@ -1,0 +1,5 @@
+claude-code-sdk>=0.0.20
+pglast>=7.10
+psycopg[binary]>=3.2.3
+pytest>=8.3.3
+python-dotenv>=1.0.1

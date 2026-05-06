@@ -1,0 +1,32 @@
+{
+  "name": "solo-agent-platform",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "typecheck": "pnpm --filter web typecheck && pnpm --filter @solo-agent/shared-types typecheck",
+    "verify:offline": "pnpm --filter web build && pnpm typecheck && pnpm spike:audit && python apps/spike/artifact_audit.py && cd apps/worker && python -m pytest",
+    "db:up": "docker compose up -d db",
+    "db:preflight": "python apps/spike/db_spike.py preflight",
+    "db:migrate": "python apps/spike/db_spike.py migrate",
+    "test:worker": "cd apps/worker && python -m pytest",
+    "spike:audit": "python apps/spike/artifact_audit.py",
+    "spike:v1": "python apps/spike/claude_sdk_spike.py v1",
+    "spike:v2": "python apps/spike/claude_sdk_spike.py v2",
+    "spike:v2hook": "python apps/spike/claude_sdk_spike.py v2hook",
+    "spike:v3": "python apps/spike/claude_sdk_spike.py v3",
+    "spike:v4": "python apps/spike/claude_sdk_spike.py v4",
+    "spike:v5": "python apps/spike/claude_sdk_spike.py v5",
+    "spike:v6": "python apps/spike/claude_sdk_spike.py v6",
+    "spike:v7": "python apps/spike/db_spike.py v7",
+    "spike:v8": "python apps/spike/db_spike.py v8",
+    "spike:v9": "python apps/spike/db_spike.py v9",
+    "spike:v10": "python apps/spike/db_spike.py v10",
+    "spike:v11": "python apps/spike/db_spike.py v11",
+    "spike:db-all": "python apps/spike/db_spike.py all"
+  },
+  "devDependencies": {
+    "@anthropic-ai/claude-code": "^2.1.129",
+    "typescript": "^5.6.3"
+  }
+}
