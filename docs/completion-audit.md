@@ -58,7 +58,7 @@ Current verdict: not complete. DB-backed Week 0 checks now pass in GitHub Action
 - Fly deployment/reboot test has not been run.
 - Vercel LISTEN/NOTIFY test has not been run.
 - HTTP-level invite/bootstrap E2E passed against `next start` in CI; deployed Vercel runtime has not been run.
-- Workaround is ready: configure the secrets documented in `docs/deployment-verification.md`, then run the manual `Deploy Verify` GitHub Actions workflow.
+- Workaround is ready: configure the secrets documented in `docs/deployment-verification.md`, then run the manual `Deploy Verify` GitHub Actions workflow. The Fly volume check only requires `FLY_API_TOKEN` and `FLY_APP_NAME`; it runs the worker in verification mode and does not require a database URL.
 
 ## DB Runtime Evidence
 

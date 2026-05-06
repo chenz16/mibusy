@@ -8,7 +8,6 @@ Fly worker verification:
 
 - `FLY_API_TOKEN`
 - `FLY_APP_NAME`
-- `FLY_DATABASE_URL`
 - `FLY_REGION` optional, defaults to `sjc`
 
 Vercel web verification:
@@ -22,7 +21,7 @@ Vercel web verification:
 
 ## What The Workflow Verifies
 
-- Fly: creates/uses the app, ensures the `agent_workspaces` volume exists, deploys the worker, writes a stamp under `/var/agent-workspaces`, restarts the machine, and confirms the stamp remains.
+- Fly: creates/uses the app, ensures the `agent_workspaces` volume exists, deploys the worker in verification mode, writes a stamp under `/var/agent-workspaces`, restarts the machine, and confirms the stamp remains. Verification mode does not require a database URL.
 - Vercel: deploys a preview build, checks `/chat`, then runs `apps/spike/web_api_e2e.py` against the deployed URL to verify invite lookup and auth bootstrap over HTTP.
 
 ## Current Status

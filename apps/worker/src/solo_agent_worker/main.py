@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import signal
 
 from .config import load_config
@@ -98,6 +99,11 @@ class Worker:
 
 
 async def async_main() -> None:
+    if os.environ.get("WORKER_VERIFY_ONLY") == "1":
+        root = os.environ.get("AGENT_WORKSPACE_ROOT", "/var/agent-workspaces")
+        os.makedirs(root, exist_ok=True)
+        await asyncio.Event().wait()
+
     worker = Worker()
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):

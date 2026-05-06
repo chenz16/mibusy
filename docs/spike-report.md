@@ -22,7 +22,7 @@ Status: in progress; W0 DB runtime checks passed in GitHub Actions, Fly/Vercel d
 - Worker policy check: friend role strips `Bash` from requested tools; owner role can retain it
 - Worker unit tests: `PYTHONPATH=apps/worker/src python -m pytest apps/worker/tests` passed, 7 tests
 - Worker Fly config: `apps/worker/fly.toml.example` pins one VM, immediate deploy strategy, and `/var/agent-workspaces` persistent mount
-- Deployment verification workaround: `.github/workflows/deploy-verify.yml` can run Fly volume reboot and Vercel preview HTTP E2E checks from GitHub Actions once repository secrets are configured; see `docs/deployment-verification.md`
+- Deployment verification workaround: `.github/workflows/deploy-verify.yml` can run Fly volume reboot and Vercel preview HTTP E2E checks from GitHub Actions once repository secrets are configured. The Fly volume check only needs `FLY_API_TOKEN` and `FLY_APP_NAME`; see `docs/deployment-verification.md`
 - Offline verification bundle: `pnpm verify:offline` runs web build, TS typecheck, artifact audit, and worker tests. SQL parser audit runs when `pglast` is installed; strict parser evidence is tracked separately via `. .venv/bin/activate && python apps/spike/artifact_audit.py`. GitHub Actions Offline Verify run `25416607958` passed on branch `stage1-agent-platform-verify`.
 - DB runtime CI: `.github/workflows/db-spike.yml` provisions `pgvector/pgvector:pg16` and runs `db:preflight`, `db:migrate`, `spike:db-all` for V7-V11, and a Next.js invite/bootstrap HTTP E2E. Run `25416814966` passed on branch `stage1-agent-platform-verify`.
 - Dev server: running at `http://localhost:3000`; Next reported file watcher `ENOSPC` warnings, but the page rendered successfully via `curl`
