@@ -17,6 +17,7 @@ DATABASE_URL = os.environ.get(
     "postgresql://postgres:postgres@localhost:5432/solo_agent",
 )
 WEB_BASE_URL = os.environ.get("WEB_BASE_URL", "http://127.0.0.1:3000")
+VERCEL_AUTOMATION_BYPASS_SECRET = os.environ.get("VERCEL_AUTOMATION_BYPASS_SECRET")
 
 
 def connect():
@@ -79,6 +80,8 @@ def request_json(
 ) -> tuple[int, dict, dict[str, str | list[str]]]:
     data = None if body is None else json.dumps(body).encode()
     headers = {"Accept": "application/json"}
+    if VERCEL_AUTOMATION_BYPASS_SECRET:
+        headers["x-vercel-protection-bypass"] = VERCEL_AUTOMATION_BYPASS_SECRET
     if body is not None:
         headers["Content-Type"] = "application/json"
     if cookie:

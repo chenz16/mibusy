@@ -94,6 +94,7 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       DATABASE_URL: ${{ secrets.VERCEL_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
@@ -114,7 +115,7 @@ jobs:
       - name: Check Vercel secrets
         run: |
           missing=0
-          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID VERCEL_AUTOMATION_BYPASS_SECRET; do
             if [ -z "${!name}" ]; then
               echo "::error::$name is required as a repository secret"
               missing=1
@@ -141,6 +142,10 @@ jobs:
           }))
           PY
 
+      - name: Configure Vercel automation bypass
+        run: |
+          pnpm dlx vercel project protection enable --protection-bypass --protection-bypass-secret "$VERCEL_AUTOMATION_BYPASS_SECRET" --token "$VERCEL_TOKEN"
+
       - name: Build and deploy Vercel preview
         run: |
           pnpm dlx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
@@ -151,8 +156,8 @@ jobs:
       - name: Verify deployed web APIs
         run: |
           url="$(tail -1 /tmp/vercel-url.txt)"
-          curl -fsS "$url/chat" >/dev/null
-          templates_html="$(curl -fsS "$url/templates")"
+          curl -fsS -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$url/chat" >/dev/null
+          templates_html="$(curl -fsS -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$url/templates")"
           echo "$templates_html" | grep -q "general_assistant"
           if [ -n "$DATABASE_URL" ]; then
             WEB_BASE_URL="$url" python apps/spike/web_api_e2e.py
