@@ -1,6 +1,6 @@
 # Week 0 Spike Report
 
-Status: in progress; W0 DB runtime checks passed in GitHub Actions, Fly/Vercel deployment checks still open
+Status: in progress; W0 DB runtime and Fly volume reboot checks passed in GitHub Actions, Vercel deployment check still open
 
 ## Environment
 
@@ -22,7 +22,7 @@ Status: in progress; W0 DB runtime checks passed in GitHub Actions, Fly/Vercel d
 - Worker policy check: friend role strips `Bash` from requested tools; owner role can retain it
 - Worker unit tests: `PYTHONPATH=apps/worker/src python -m pytest apps/worker/tests` passed, 7 tests
 - Worker Fly config: `apps/worker/fly.toml.example` pins one VM, immediate deploy strategy, and `/var/agent-workspaces` persistent mount
-- Deployment verification workaround: `.github/workflows/deploy-verify.yml` can run Fly volume reboot and Vercel preview HTTP E2E checks from GitHub Actions once repository secrets are configured. The Fly volume check only needs `FLY_API_TOKEN` and `FLY_APP_NAME`; see `docs/deployment-verification.md`
+- Deployment verification: `.github/workflows/deploy-verify.yml` Fly target passed in run `25436592363`, including verification-mode deploy, volume stamp write, machine restart, and stamp read after restart. Vercel preview HTTP E2E remains available but not run; see `docs/deployment-verification.md`
 - Offline verification bundle: `pnpm verify:offline` runs web build, TS typecheck, artifact audit, and worker tests. SQL parser audit runs when `pglast` is installed; strict parser evidence is tracked separately via `. .venv/bin/activate && python apps/spike/artifact_audit.py`. GitHub Actions Offline Verify run `25416607958` passed on branch `stage1-agent-platform-verify`.
 - DB runtime CI: `.github/workflows/db-spike.yml` provisions `pgvector/pgvector:pg16` and runs `db:preflight`, `db:migrate`, `spike:db-all` for V7-V11, and a Next.js invite/bootstrap HTTP E2E. Run `25416814966` passed on branch `stage1-agent-platform-verify`.
 - Dev server: running at `http://localhost:3000`; Next reported file watcher `ENOSPC` warnings, but the page rendered successfully via `curl`
@@ -76,7 +76,7 @@ Status: in progress; W0 DB runtime checks passed in GitHub Actions, Fly/Vercel d
 - Status: partial
 - Command: `HOME=/tmp/solo-agent-sdk-home ANTHROPIC_API_KEY=... PATH="$PWD/node_modules/.bin:$PATH" .venv/bin/python apps/spike/claude_sdk_spike.py v6`
 - Expected: same-machine reboot resume works; cross-machine failure is documented
-- Observed output: first run returned session id `527d2f19-471b-4539-acda-34834b8447d8`; second run with `ClaudeCodeOptions(resume=<session_id>)` initialized with the same session id and correctly recalled `resume-alpha-7319`. Fly config artifact exists, but reboot/volume persistence has not been deployed and tested.
+- Observed output: first run returned session id `527d2f19-471b-4539-acda-34834b8447d8`; second run with `ClaudeCodeOptions(resume=<session_id>)` initialized with the same session id and correctly recalled `resume-alpha-7319`. Fly volume persistence was separately verified in Deploy Verify run `25436592363` by writing a stamp under `/var/agent-workspaces`, restarting the machine, and reading the stamp back.
 - Architecture impact: Python SDK `resume` takes the SDK session ID, not an explicit filesystem path. `sdk_session_path` should store the Claude Code project/memory root as supporting metadata; `sdk_session_id` is the primary resume handle and is now included in `0001_init.sql`.
 - Implementation note: worker stores `sdk_session_id` from SDK init events and passes `resume=<sdk_session_id>` when present in job payload.
 

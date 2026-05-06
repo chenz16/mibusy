@@ -26,4 +26,4 @@ Vercel web verification:
 
 ## Current Status
 
-This repo has verified DB/runtime behavior in GitHub Actions, but has not completed deployed Fly/Vercel verification because the required cloud credentials are not configured in this environment.
+This repo has verified DB/runtime behavior and Fly volume reboot behavior in GitHub Actions. Vercel deployment verification is still open until the required Vercel secrets are configured.

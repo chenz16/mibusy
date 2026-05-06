@@ -2,7 +2,7 @@
 
 Objective: use `agent-platform-stage1-spec.md` as the active goal, implement the requested Stage 1 / Week 0 spike work in this repository, and verify the result.
 
-Current verdict: not complete. DB-backed Week 0 checks now pass in GitHub Actions; Fly volume reboot and deployed Vercel/SSE behavior remain unverified.
+Current verdict: not complete. DB-backed Week 0 checks and Fly volume reboot verification pass in GitHub Actions; deployed Vercel/SSE behavior remains unverified.
 
 ## Deliverable Checklist
 
@@ -14,7 +14,7 @@ Current verdict: not complete. DB-backed Week 0 checks now pass in GitHub Action
 | Docker Compose Postgres + pgvector | `docker-compose.yml`; GitHub Actions uses `pgvector/pgvector:pg16` | Artifact done; runtime verified in CI |
 | W0 migration | `packages/db/migrations/0001_init.sql` | Done; parser check passed |
 | Seed templates | Five global templates and initial DAG edges in `0001_init.sql`; static DAG audit checks acyclic edges; migration applied in DB Spike run `25416814966` | Done |
-| Spike report | `docs/spike-report.md` | Updated; Fly/Vercel deployment sections still open |
+| Spike report | `docs/spike-report.md` | Updated; Vercel deployment section still open |
 | Artifact verifier | `apps/spike/artifact_audit.py` | Done |
 | Next SSE route | `apps/web/app/api/sessions/[id]/events/route.ts` | Done; build/typecheck passed |
 | Stage 1 UI shell | `/chat`, `/tasks`, `/schedules`, `/inbox`, `/memory`, `/templates`, `/observe`, `/settings` routes | Done; static shell only |
@@ -23,7 +23,7 @@ Current verdict: not complete. DB-backed Week 0 checks now pass in GitHub Action
 | Worker long process skeleton | `apps/worker/src/solo_agent_worker/main.py` | Done |
 | Worker jobs table pickup | `apps/worker/src/solo_agent_worker/db.py` uses `FOR UPDATE SKIP LOCKED`; V10 DB harness passed in run `25416814966` | Done |
 | Worker SDK runner | `apps/worker/src/solo_agent_worker/sdk_runner.py` | Done; unit covered |
-| Fly single-machine volume config | `apps/worker/fly.toml.example`; `.github/workflows/deploy-verify.yml` can verify volume persistence with Fly secrets | Artifact done; deploy/reboot blocked until secrets are configured |
+| Fly single-machine volume config | `apps/worker/fly.toml.example`; Deploy Verify run `25436592363` | Passed |
 
 ## Verification Checklist
 
@@ -37,13 +37,13 @@ Current verdict: not complete. DB-backed Week 0 checks now pass in GitHub Action
 | Worker unit tests | `PYTHONPATH=apps/worker/src python -m pytest apps/worker/tests` | Passed, 7 tests |
 | Offline verification bundle | Local `pnpm verify:offline`; GitHub Actions Offline Verify run `25416607958` | Passed; runs web build, TS typecheck, artifact audit, worker tests. SQL parser check is optional unless `pglast` is installed |
 | DB runtime CI | `.github/workflows/db-spike.yml` run `25416814966` on branch `stage1-agent-platform-verify` | Passed |
-| Deployment verification workflow | `.github/workflows/deploy-verify.yml`; `docs/deployment-verification.md` | Added; not run because cloud secrets are not configured |
+| Deployment verification workflow | `.github/workflows/deploy-verify.yml`; `docs/deployment-verification.md`; Fly target run `25436592363` | Fly passed; Vercel target not run |
 | SDK V1 | `python apps/spike/claude_sdk_spike.py v1` with clean `HOME` and API key | Passed |
 | SDK V2 | `python apps/spike/claude_sdk_spike.py v2`, `v2hook` | Failed; fallback required |
 | SDK V3 | `python apps/spike/claude_sdk_spike.py v3` | Partial |
 | SDK V4 | `python apps/spike/claude_sdk_spike.py v4` | Partial |
 | SDK V5 | `python apps/spike/claude_sdk_spike.py v5` | Partial |
-| SDK V6 local resume | `python apps/spike/claude_sdk_spike.py v6` | Partial; Fly volume not tested |
+| SDK V6 local resume | `python apps/spike/claude_sdk_spike.py v6`; Deploy Verify run `25436592363` | Partial SDK resume; Fly volume reboot verified |
 | DB V7 | `pnpm spike:db-all` in DB Spike run `25416814966` | Passed |
 | DB V8 | `pnpm spike:db-all` in DB Spike run `25416814966` | Passed |
 | DB V9 | `pnpm spike:db-all` in DB Spike run `25416814966` | Passed for local Postgres LISTEN/NOTIFY and replay; Vercel Pro runtime not run |
@@ -55,10 +55,10 @@ Current verdict: not complete. DB-backed Week 0 checks now pass in GitHub Action
 
 - Local Docker daemon is not accessible to the current user.
 - Local `postgres` / `psql` binaries are not installed.
-- Fly deployment/reboot test has not been run.
 - Vercel LISTEN/NOTIFY test has not been run.
 - HTTP-level invite/bootstrap E2E passed against `next start` in CI; deployed Vercel runtime has not been run.
-- Workaround is ready: configure the secrets documented in `docs/deployment-verification.md`, then run the manual `Deploy Verify` GitHub Actions workflow. The Fly volume check only requires `FLY_API_TOKEN` and `FLY_APP_NAME`; it runs the worker in verification mode and does not require a database URL.
+- Fly deployment/reboot test passed in Deploy Verify run `25436592363`.
+- Vercel workaround is ready: configure the Vercel secrets documented in `docs/deployment-verification.md`, then run the manual `Deploy Verify` GitHub Actions workflow with `target=vercel`.
 
 ## DB Runtime Evidence
 
@@ -75,3 +75,11 @@ Current verdict: not complete. DB-backed Week 0 checks now pass in GitHub Action
 - Branch: `stage1-agent-platform-verify`
 - Commit: `12001c4`
 - Steps passed: dependency installation and `pnpm verify:offline`.
+
+## Fly Runtime Evidence
+
+- GitHub Actions Deploy Verify run: `25436592363`
+- Branch: `stage1-agent-platform-verify`
+- Commit: `0e1b83a`
+- Target: `fly`
+- Steps passed: app/volume check, verification-mode deploy, volume stamp write, machine restart, stamp read after restart.
