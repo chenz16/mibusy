@@ -62,7 +62,21 @@ def seed_invitation(code: str, email: str) -> None:
         )
 
 
-def request_json(method: str, path: str, *, body: dict | None = None, cookie: str | None = None) -> tuple[int, dict, dict]:
+def headers_to_dict(headers) -> dict[str, str | list[str]]:
+    result: dict[str, str | list[str]] = dict(headers)
+    cookies = headers.get_all("Set-Cookie", [])
+    if cookies:
+        result["Set-Cookie"] = cookies
+    return result
+
+
+def request_json(
+    method: str,
+    path: str,
+    *,
+    body: dict | None = None,
+    cookie: str | None = None,
+) -> tuple[int, dict, dict[str, str | list[str]]]:
     data = None if body is None else json.dumps(body).encode()
     headers = {"Accept": "application/json"}
     if body is not None:
@@ -74,20 +88,28 @@ def request_json(method: str, path: str, *, body: dict | None = None, cookie: st
     try:
         with urlopen(request, timeout=10) as response:
             payload = json.loads(response.read().decode())
-            return response.status, payload, dict(response.headers)
+            return response.status, payload, headers_to_dict(response.headers)
     except HTTPError as error:
         payload = json.loads(error.read().decode())
-        return error.code, payload, dict(error.headers)
+        return error.code, payload, headers_to_dict(error.headers)
 
 
-def pending_invite_cookie(headers: dict) -> str:
-    raw = headers.get("Set-Cookie")
-    if not raw:
+def header_values(headers: dict[str, str | list[str]], name: str) -> list[str]:
+    value = headers.get(name)
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def pending_invite_cookie(headers: dict[str, str | list[str]]) -> str:
+    raw_values = header_values(headers, "Set-Cookie")
+    if not raw_values:
         raise AssertionError("invite endpoint did not set a cookie")
     cookie = SimpleCookie()
-    cookie.load(raw)
+    for raw in raw_values:
+        cookie.load(raw)
     if "pending_invite" not in cookie:
-        raise AssertionError(f"pending_invite cookie missing from {raw!r}")
+        raise AssertionError(f"pending_invite cookie missing from {raw_values!r}")
     value = cookie["pending_invite"].value
     return f"pending_invite={value}"
 
@@ -116,7 +138,11 @@ def main() -> None:
         [
             ("bootstrap status", bootstrap_status == 200, str(bootstrap_payload)),
             ("bootstrap body", bootstrap_payload.get("ok") is True, str(bootstrap_payload)),
-            ("bootstrap clears cookie", "Max-Age=0" in bootstrap_headers.get("Set-Cookie", ""), str(bootstrap_headers)),
+            (
+                "bootstrap clears cookie",
+                any("Max-Age=0" in value for value in header_values(bootstrap_headers, "Set-Cookie")),
+                str(bootstrap_headers),
+            ),
         ]
     )
 
