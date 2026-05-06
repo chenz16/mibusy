@@ -39,12 +39,12 @@ jobs:
 
       - name: Prepare Fly config
         run: |
-          cp apps/worker/fly.toml.example apps/worker/fly.toml
+          cp apps/worker/fly.toml.example fly.toml
           python - <<'PY'
           import os
           from pathlib import Path
 
-          path = Path("apps/worker/fly.toml")
+          path = Path("fly.toml")
           text = path.read_text()
           text = text.replace('app = "solo-agent-platform-worker"', f'app = "{os.environ["FLY_APP_NAME"]}"')
           path.write_text(text)
@@ -62,7 +62,7 @@ jobs:
         run: flyctl secrets set WORKER_VERIFY_ONLY=1 --app "$FLY_APP_NAME"
 
       - name: Deploy worker
-        run: flyctl deploy --remote-only --config apps/worker/fly.toml --app "$FLY_APP_NAME"
+        run: flyctl deploy --remote-only --config fly.toml --app "$FLY_APP_NAME"
 
       - name: Verify volume survives machine restart
         run: |
