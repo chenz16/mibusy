@@ -51,10 +51,12 @@ REQUIRED_PATHS = [
     "packages/shared-types/src/index.ts",
     "docs/spike-report.md",
     "docs/completion-audit.md",
+    "docs/deployment-verification.md",
     "docker-compose.yml",
     "pnpm-workspace.yaml",
     ".github/workflows/offline-verify.yml",
     ".github/workflows/db-spike.yml",
+    ".github/workflows/deploy-verify.yml",
 ]
 
 REQUIRED_TABLES = [

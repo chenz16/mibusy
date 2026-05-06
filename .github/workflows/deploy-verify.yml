@@ -1,0 +1,144 @@
+name: Deploy Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deployment target to verify"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - fly
+          - vercel
+
+jobs:
+  fly-volume:
+    if: ${{ inputs.target == 'all' || inputs.target == 'fly' }}
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
+      FLY_DATABASE_URL: ${{ secrets.FLY_DATABASE_URL }}
+      FLY_REGION: ${{ secrets.FLY_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Check Fly secrets
+        run: |
+          missing=0
+          for name in FLY_API_TOKEN FLY_APP_NAME FLY_DATABASE_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is required as a repository secret"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Prepare Fly config
+        run: |
+          cp apps/worker/fly.toml.example apps/worker/fly.toml
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("apps/worker/fly.toml")
+          text = path.read_text()
+          text = text.replace('app = "solo-agent-platform-worker"', f'app = "{os.environ["FLY_APP_NAME"]}"')
+          path.write_text(text)
+          PY
+
+      - name: Ensure Fly app and volume
+        run: |
+          region="${FLY_REGION:-sjc}"
+          flyctl apps create "$FLY_APP_NAME" || true
+          if ! flyctl volumes list --app "$FLY_APP_NAME" --json | jq -e '.[] | select(.name == "agent_workspaces")' >/dev/null; then
+            flyctl volumes create agent_workspaces --app "$FLY_APP_NAME" --region "$region" --size 10 --yes
+          fi
+
+      - name: Configure worker secrets
+        run: flyctl secrets set DATABASE_URL="$FLY_DATABASE_URL" --app "$FLY_APP_NAME"
+
+      - name: Deploy worker
+        run: flyctl deploy --remote-only --config apps/worker/fly.toml --app "$FLY_APP_NAME"
+
+      - name: Verify volume survives machine restart
+        run: |
+          stamp="volume-ok-$(date +%s)"
+          flyctl ssh console --app "$FLY_APP_NAME" --command "sh -lc 'mkdir -p /var/agent-workspaces/verify && echo $stamp > /var/agent-workspaces/verify/stamp.txt && cat /var/agent-workspaces/verify/stamp.txt'"
+          machine_id="$(flyctl machine list --app "$FLY_APP_NAME" --json | jq -r '.[0].id')"
+          flyctl machine restart "$machine_id" --app "$FLY_APP_NAME"
+          sleep 10
+          observed="$(flyctl ssh console --app "$FLY_APP_NAME" --command "cat /var/agent-workspaces/verify/stamp.txt")"
+          test "$observed" = "$stamp"
+
+  vercel-preview:
+    if: ${{ inputs.target == 'all' || inputs.target == 'vercel' }}
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      DATABASE_URL: ${{ secrets.VERCEL_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check Vercel secrets
+        run: |
+          missing=0
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID DATABASE_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is required as a repository secret"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          python -m pip install -r apps/spike/requirements.txt
+
+      - name: Link Vercel project
+        run: |
+          mkdir -p apps/web/.vercel
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          Path("apps/web/.vercel/project.json").write_text(json.dumps({
+              "orgId": os.environ["VERCEL_ORG_ID"],
+              "projectId": os.environ["VERCEL_PROJECT_ID"],
+          }))
+          PY
+
+      - name: Build and deploy Vercel preview
+        working-directory: apps/web
+        run: |
+          pnpm dlx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
+          pnpm dlx vercel build --token "$VERCEL_TOKEN"
+          pnpm dlx vercel deploy --prebuilt --token "$VERCEL_TOKEN" > /tmp/vercel-url.txt
+          cat /tmp/vercel-url.txt
+
+      - name: Verify deployed web APIs
+        run: |
+          url="$(tail -1 /tmp/vercel-url.txt)"
+          curl -fsS "$url/chat" >/dev/null
+          WEB_BASE_URL="$url" python apps/spike/web_api_e2e.py

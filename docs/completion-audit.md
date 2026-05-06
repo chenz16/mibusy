@@ -23,7 +23,7 @@ Current verdict: not complete. DB-backed Week 0 checks now pass in GitHub Action
 | Worker long process skeleton | `apps/worker/src/solo_agent_worker/main.py` | Done |
 | Worker jobs table pickup | `apps/worker/src/solo_agent_worker/db.py` uses `FOR UPDATE SKIP LOCKED`; V10 DB harness passed in run `25416814966` | Done |
 | Worker SDK runner | `apps/worker/src/solo_agent_worker/sdk_runner.py` | Done; unit covered |
-| Fly single-machine volume config | `apps/worker/fly.toml.example` | Artifact done; deploy/reboot blocked |
+| Fly single-machine volume config | `apps/worker/fly.toml.example`; `.github/workflows/deploy-verify.yml` can verify volume persistence with Fly secrets | Artifact done; deploy/reboot blocked until secrets are configured |
 
 ## Verification Checklist
 
@@ -37,6 +37,7 @@ Current verdict: not complete. DB-backed Week 0 checks now pass in GitHub Action
 | Worker unit tests | `PYTHONPATH=apps/worker/src python -m pytest apps/worker/tests` | Passed, 7 tests |
 | Offline verification bundle | Local `pnpm verify:offline`; GitHub Actions Offline Verify run `25416607958` | Passed; runs web build, TS typecheck, artifact audit, worker tests. SQL parser check is optional unless `pglast` is installed |
 | DB runtime CI | `.github/workflows/db-spike.yml` run `25416814966` on branch `stage1-agent-platform-verify` | Passed |
+| Deployment verification workflow | `.github/workflows/deploy-verify.yml`; `docs/deployment-verification.md` | Added; not run because cloud secrets are not configured |
 | SDK V1 | `python apps/spike/claude_sdk_spike.py v1` with clean `HOME` and API key | Passed |
 | SDK V2 | `python apps/spike/claude_sdk_spike.py v2`, `v2hook` | Failed; fallback required |
 | SDK V3 | `python apps/spike/claude_sdk_spike.py v3` | Partial |
@@ -57,6 +58,7 @@ Current verdict: not complete. DB-backed Week 0 checks now pass in GitHub Action
 - Fly deployment/reboot test has not been run.
 - Vercel LISTEN/NOTIFY test has not been run.
 - HTTP-level invite/bootstrap E2E passed against `next start` in CI; deployed Vercel runtime has not been run.
+- Workaround is ready: configure the secrets documented in `docs/deployment-verification.md`, then run the manual `Deploy Verify` GitHub Actions workflow.
 
 ## DB Runtime Evidence
 
