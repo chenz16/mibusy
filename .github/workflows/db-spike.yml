@@ -81,3 +81,10 @@ jobs:
 
       - name: Run web API invite bootstrap E2E
         run: pnpm spike:web-api
+
+      - name: Verify templates page reads seeded DB templates
+        run: |
+          html="$(curl -fsS "$WEB_BASE_URL/templates")"
+          echo "$html" | grep -q "Live DB"
+          echo "$html" | grep -q "general_assistant"
+          echo "$html" | grep -q "scheduler_agent"

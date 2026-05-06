@@ -1,9 +1,13 @@
 import { GitBranch, Plus } from "lucide-react";
 
 import { PageScaffold } from "../../components/PageScaffold";
-import { templates } from "../../lib/ui-data";
+import { getTemplateCatalog } from "../../lib/templates";
 
-export default function TemplatesPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TemplatesPage() {
+  const catalog = await getTemplateCatalog();
+
   return (
     <PageScaffold
       title="Templates"
@@ -14,17 +18,20 @@ export default function TemplatesPage() {
         <section className="panel">
           <div className="panel-header">
             <span className="panel-title">Seed and private templates</span>
-            <span className="badge">DAG only, no visual editor</span>
+            <span className={`badge ${catalog.source === "database" ? "completed" : "pending"}`}>
+              {catalog.source === "database" ? "Live DB" : "Static fallback"}
+            </span>
           </div>
           <table className="table">
-            <thead><tr><th>Name</th><th>Scope</th><th>Tools</th><th>Budget</th></tr></thead>
+            <thead><tr><th>Name</th><th>Scope</th><th>Tools</th><th>Budget</th><th>Max hours</th></tr></thead>
             <tbody>
-              {templates.map((template) => (
-                <tr key={template.name}>
+              {catalog.templates.map((template) => (
+                <tr key={template.id}>
                   <td><strong>{template.name}</strong><div className="muted">revision {template.revision}</div></td>
-                  <td>{template.scope}</td>
-                  <td>{template.tools}</td>
-                  <td>{template.budget}</td>
+                  <td><span className="badge">{template.scope}</span></td>
+                  <td>{template.tools.join(", ")}</td>
+                  <td>{template.budget === null ? "No cap" : `$${template.budget.toFixed(2)}`}</td>
+                  <td>{template.maxSessionHours === null ? "No cap" : `${template.maxSessionHours}h`}</td>
                 </tr>
               ))}
             </tbody>
@@ -33,9 +40,9 @@ export default function TemplatesPage() {
         <aside className="panel">
           <div className="panel-header"><span className="panel-title"><GitBranch size={15} /> Invocation graph</span></div>
           <div className="panel-body mono stack">
-            <div>general_assistant {">"} research_agent</div>
-            <div>research_agent {">"} writer_agent</div>
-            <div>research_agent {">"} notifier_agent</div>
+            {catalog.edges.map((edge) => (
+              <div key={`${edge.caller}-${edge.callee}`}>{edge.caller} {">"} {edge.callee}</div>
+            ))}
           </div>
         </aside>
       </div>

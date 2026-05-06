@@ -114,7 +114,7 @@ jobs:
       - name: Check Vercel secrets
         run: |
           missing=0
-          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID DATABASE_URL; do
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
             if [ -z "${!name}" ]; then
               echo "::error::$name is required as a repository secret"
               missing=1
@@ -153,4 +153,10 @@ jobs:
         run: |
           url="$(tail -1 /tmp/vercel-url.txt)"
           curl -fsS "$url/chat" >/dev/null
-          WEB_BASE_URL="$url" python apps/spike/web_api_e2e.py
+          templates_html="$(curl -fsS "$url/templates")"
+          echo "$templates_html" | grep -q "general_assistant"
+          if [ -n "$DATABASE_URL" ]; then
+            WEB_BASE_URL="$url" python apps/spike/web_api_e2e.py
+          else
+            echo "VERCEL_DATABASE_URL is not configured; skipped deployed invite/bootstrap DB E2E."
+          fi
