@@ -67,10 +67,23 @@ jobs:
       - name: Verify volume survives machine restart
         run: |
           stamp="volume-ok-$(date +%s)"
-          flyctl ssh console --app "$FLY_APP_NAME" --command "sh -lc 'mkdir -p /var/agent-workspaces/verify && echo $stamp > /var/agent-workspaces/verify/stamp.txt && cat /var/agent-workspaces/verify/stamp.txt'"
           machine_id="$(flyctl machine list --app "$FLY_APP_NAME" --json | jq -r '.[0].id')"
+          flyctl machine start "$machine_id" --app "$FLY_APP_NAME" || true
+          for attempt in {1..30}; do
+            if flyctl ssh console --app "$FLY_APP_NAME" --command "true"; then
+              break
+            fi
+            sleep 2
+          done
+          flyctl ssh console --app "$FLY_APP_NAME" --command "sh -lc 'mkdir -p /var/agent-workspaces/verify && echo $stamp > /var/agent-workspaces/verify/stamp.txt && cat /var/agent-workspaces/verify/stamp.txt'"
           flyctl machine restart "$machine_id" --app "$FLY_APP_NAME"
-          sleep 10
+          for attempt in {1..30}; do
+            observed="$(flyctl ssh console --app "$FLY_APP_NAME" --command "cat /var/agent-workspaces/verify/stamp.txt" || true)"
+            if [ "$observed" = "$stamp" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
           observed="$(flyctl ssh console --app "$FLY_APP_NAME" --command "cat /var/agent-workspaces/verify/stamp.txt")"
           test "$observed" = "$stamp"
 
