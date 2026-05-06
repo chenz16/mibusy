@@ -142,6 +142,10 @@ def claim_count(conn: psycopg.Connection[Any], table: str) -> int:
     return int(row["count"])
 
 
+def same_uuid(left: Any, right: Any) -> bool:
+    return str(left) == str(right)
+
+
 def bootstrap_invite(code: str, email: str, auth_user_id: str) -> tuple[str, str]:
     with connect() as conn:
         invitation = conn.execute(
@@ -212,9 +216,17 @@ def run_v7() -> None:
 
     checks = [
         ("tenant created", bool(tenant_id), tenant_id),
-        ("user created as tenant owner", user_row["tenant_id"] == tenant_id and user_row["role"] == "owner", str(user_row)),
+        (
+            "user created as tenant owner",
+            same_uuid(user_row["tenant_id"], tenant_id) and user_row["role"] == "owner",
+            str(user_row),
+        ),
         ("platform role inherited", user_row["platform_role"] == "friend", str(user_row)),
-        ("invite consumed", invite_row["consumed_at"] is not None and invite_row["consumed_by_user_id"] == user_id, str(invite_row)),
+        (
+            "invite consumed",
+            invite_row["consumed_at"] is not None and same_uuid(invite_row["consumed_by_user_id"], user_id),
+            str(invite_row),
+        ),
     ]
     print_result("V7 signup bootstrap happy path", checks)
 
@@ -276,7 +288,7 @@ def run_v11() -> None:
         set_claims(conn, data.tenant_a)
 
         visible = conn.execute("SELECT id FROM agent_sessions ORDER BY created_at").fetchall()
-        checks.append(("read isolation", len(visible) == 1 and visible[0]["id"] == data.session_a, str(visible)))
+        checks.append(("read isolation", len(visible) == 1 and same_uuid(visible[0]["id"], data.session_a), str(visible)))
 
         inserted = str(uuid.uuid4())
         conn.execute(
@@ -305,7 +317,7 @@ def run_v11() -> None:
 
         set_claims(conn, data.tenant_b)
         tampered = conn.execute("SELECT id FROM agent_sessions ORDER BY created_at").fetchall()
-        checks.append(("jwt claim switch", len(tampered) == 1 and tampered[0]["id"] == data.session_b, str(tampered)))
+        checks.append(("jwt claim switch", len(tampered) == 1 and same_uuid(tampered[0]["id"], data.session_b), str(tampered)))
 
     print_result("V11 RLS cross-tenant isolation", checks)
 
