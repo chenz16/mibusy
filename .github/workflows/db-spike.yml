@@ -82,6 +82,9 @@ jobs:
       - name: Run web API invite bootstrap E2E
         run: pnpm spike:web-api
 
+      - name: Restore seed templates for page check
+        run: pnpm db:migrate
+
       - name: Verify templates page reads seeded DB templates
         run: |
           html="$(curl -fsS "$WEB_BASE_URL/templates")"
