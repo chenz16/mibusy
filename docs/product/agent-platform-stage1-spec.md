@@ -4,6 +4,8 @@
 > 路径定位:Hobby → 第二阶段商业化 SaaS
 
 > **产品定位澄清:** 这里的 "Solo" 指 **solo founder / manager / CEO 的使用场景**,不是指系统里只有一个 agent。产品目标是给一个管理者提供一支可委派、可追踪、可审批的虚拟团队。
+>
+> **组织模型补充:** 长期产品应采用 Desk-based virtual company model: 真人和虚拟员工严格分离,但可以挂到同一个 Desk 共享上下文、技能和交付物。详见 `docs/product/desk-based-virtual-company-requirements.md`。
 
 ---
 
