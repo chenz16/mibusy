@@ -120,3 +120,10 @@ Status: in progress for full Stage 1; W0 DB runtime, Fly volume reboot, and Verc
 - Expected: read/write/list/aggregate/JWT claim switch checks pass
 - Observed output: read isolation, own-tenant write, cross-tenant write rejection, list isolation, aggregate isolation, and JWT claim switch all passed.
 - Architecture impact: JWT custom claim RLS policy shape is viable for Stage 1 tenant isolation.
+
+## DeepSeek V4 Pro backend smoke
+
+- Status: passed locally
+- Direct API path: set `AGENT_LLM_PROVIDER=deepseek`, `DEEPSEEK_API_KEY`, and optionally `DEEPSEEK_MODEL=deepseek-v4-pro`. The worker uses DeepSeek's OpenAI-compatible `/chat/completions` endpoint and records normal `status`, `message_chunk`, and terminal session result events.
+- Claude Code SDK path: set `AGENT_LLM_PROVIDER=claude_code_deepseek`, `DEEPSEEK_API_KEY`, and `DEEPSEEK_MODEL=deepseek-v4-pro`. The worker routes the Claude Code SDK through DeepSeek's Anthropic-compatible endpoint.
+- Observed output: direct DeepSeek API returned API model `deepseek-v4-pro`; Claude Code SDK path completed a one-turn response with a persisted SDK session id. Treat the response body's self-identified model text as untrusted; use the API model field and request/session metadata instead.

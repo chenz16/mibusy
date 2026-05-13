@@ -18,6 +18,7 @@ from claude_code_sdk import (
 )
 
 from .config import WorkerConfig, allowed_tools_for_role
+from .deepseek_runner import run_deepseek_completion
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,11 @@ def workspace_for(config: WorkerConfig, tenant_id: str, session_id: str) -> Path
 def clean_claude_env(config: WorkerConfig) -> dict[str, str]:
     env = dict(os.environ)
     env["HOME"] = str(config.claude_home)
+    if config.llm_provider == "claude_code_deepseek":
+        if not config.deepseek_api_key:
+            raise RuntimeError("DEEPSEEK_API_KEY is required when AGENT_LLM_PROVIDER=claude_code_deepseek")
+        env["ANTHROPIC_BASE_URL"] = "https://api.deepseek.com/anthropic"
+        env["ANTHROPIC_API_KEY"] = config.deepseek_api_key
     return env
 
 
@@ -132,6 +138,53 @@ async def run_agent(
     workspace.mkdir(parents=True, exist_ok=True)
     config.claude_home.mkdir(parents=True, exist_ok=True)
 
+    if config.llm_provider == "deepseek":
+        sdk_session_id = resume_sdk_session_id or f"deepseek:{tenant_id}:{session_id}"
+        yield ("status", {"status": "started", "sdk_session_id": sdk_session_id, "provider": "deepseek"}), None
+        try:
+            response = run_deepseek_completion(config, prompt=prompt)
+            if response.request_id:
+                yield (
+                    "status",
+                    {
+                        "status": "api_response",
+                        "provider": "deepseek",
+                        "model": response.model,
+                        "request_id": response.request_id,
+                    },
+                ), None
+            yield ("message_chunk", {"text": response.text, "chunk_seq": 0}), None
+            yield None, AgentRunResult(
+                status="completed",
+                sdk_session_id=sdk_session_id,
+                summary=response.text,
+                error=None,
+                cost_usd=None,
+                tokens=response.tokens,
+            )
+            return
+        except Exception as exc:
+            yield ("error", {"reason": str(exc), "recoverable": False, "provider": "deepseek"}), AgentRunResult(
+                status="failed",
+                sdk_session_id=sdk_session_id,
+                summary=None,
+                error=str(exc),
+                cost_usd=None,
+                tokens=None,
+            )
+            return
+
+    if config.llm_provider not in {"claude_code", "claude_code_deepseek"}:
+        yield ("error", {"reason": f"unsupported AGENT_LLM_PROVIDER: {config.llm_provider}", "recoverable": False}), AgentRunResult(
+            status="failed",
+            sdk_session_id=resume_sdk_session_id,
+            summary=None,
+            error=f"unsupported AGENT_LLM_PROVIDER: {config.llm_provider}",
+            cost_usd=None,
+            tokens=None,
+        )
+        return
+
     extra_args: dict[str, str | None] = {}
     if max_budget_usd is not None:
         extra_args["max-budget-usd"] = str(max_budget_usd)
@@ -142,6 +195,7 @@ async def run_agent(
         allowed_tools=allowed_tools_for_role(user_role, requested_tools),
         permission_mode="acceptEdits",
         resume=resume_sdk_session_id,
+        model=config.deepseek_model if config.llm_provider == "claude_code_deepseek" else None,
         env=clean_claude_env(config),
         extra_args=extra_args,
     )
@@ -189,4 +243,3 @@ async def run_agent(
             cost_usd=final_cost,
             tokens=final_tokens,
         )
-

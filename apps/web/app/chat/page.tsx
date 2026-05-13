@@ -1,105 +1,76 @@
-import { Play, Square } from "lucide-react";
+import { Play, Plus, ShieldCheck } from "lucide-react";
 
 import { PageScaffold } from "../../components/PageScaffold";
-import { StatusBadge } from "../../components/StatusBadge";
-import { decisionItems, operatingMetrics, workstreams } from "../../lib/ui-data";
+import { decisionItems, employees, operatingMetrics, workstreams } from "../../lib/ui-data";
 
 export default function ChatPage() {
+  const atlas = employees[0];
+
   return (
     <PageScaffold
-      title="CEO Desk"
-      subtitle="Delegate objectives to a virtual team, review live work, and make decisions only when your judgment is needed."
-      action={
-        <>
-          <button className="button secondary" type="button">
-            <Square size={15} />
-            Pause team
-          </button>
-          <button className="button" type="button">
-            <Play size={15} />
-            Delegate objective
-          </button>
-        </>
-      }
+      title="今日"
+      subtitle="你的虚拟团队今天正在推进什么、哪里需要你判断、哪些任务可以继续自动跑。"
+      action={<span className="badge awaiting">{decisionItems.length} 待审</span>}
     >
-      <div className="split" style={{ paddingTop: 18 }}>
+      <section className="hero-card">
+        <div className="hero-kicker">Atlas · Chief of Staff</div>
+        <h2 className="hero-title">今天有 3 个判断点，团队其余工作继续推进。</h2>
+        <p className="muted" style={{ margin: 0 }}>{atlas.nowDoing}</p>
+        <div className="toolbar">
+          <button className="button" type="button"><Play size={15} />继续推进</button>
+          <button className="button secondary" type="button"><Plus size={15} />分配新任务</button>
+        </div>
+      </section>
+
+      <div className="split" style={{ marginTop: 12 }}>
         {operatingMetrics.map((metric) => {
           const Icon = metric.icon;
           return (
-            <section className="panel" key={metric.label}>
-              <div className="metric">
-                <div className="muted"><Icon size={15} /> {metric.label}</div>
-                <div className="metric-value">{metric.value}</div>
-                <div className="muted">{metric.note}</div>
-              </div>
+            <section className="metric" key={metric.label}>
+              <div className="muted"><Icon size={15} /> {metric.label}</div>
+              <div className="metric-value">{metric.value}</div>
+              <div className="muted">{metric.note}</div>
             </section>
           );
         })}
       </div>
 
-      <div className="chat-layout">
-        <section className="panel">
-          <div className="panel-header">
-            <span className="panel-title">Today brief</span>
-            <span className="badge completed">Live</span>
+      <section className="stack" style={{ marginTop: 14 }}>
+        <div className="panel-header" style={{ border: 0, padding: "4px 2px" }}>
+          <span className="panel-title">等待你拍板</span>
+          <span className="badge awaiting">highest urgency</span>
+        </div>
+        <article className="task-card highlight">
+          <div className="toolbar" style={{ justifyContent: "space-between" }}>
+            <strong>{decisionItems[0].title}</strong>
+            <span className="badge awaiting">{decisionItems[0].age}</span>
           </div>
-          <div className="panel-body session-list">
-            {workstreams.map((workstream) => (
-              <div className="message" key={workstream.name}>
-                <strong>{workstream.name}</strong>
-                <div className="muted">{workstream.owner} · {workstream.deliverable}</div>
-              </div>
-            ))}
-          </div>
-        </section>
+          <div>{decisionItems[0].question}</div>
+          <div className="muted">{decisionItems[0].recommendation}</div>
+        </article>
+      </section>
 
-        <section className="panel">
-          <div className="panel-header">
-            <span className="panel-title">K-12 district outreach strategy</span>
-            <StatusBadge state="running" />
-          </div>
-          <div className="panel-body message-list">
-            <div className="message user">Find the 20 best districts to approach for robotics education pilots.</div>
-            <div className="message">
-              <strong>Chief of Staff</strong>
-              <div className="muted">Split into research, scoring, and outreach draft. Research Lead owns first pass.</div>
+      <section className="stack" style={{ marginTop: 14 }}>
+        <div className="panel-header" style={{ border: 0, padding: "4px 2px" }}>
+          <span className="panel-title">运行中的任务</span>
+          <ShieldCheck size={16} color="var(--gold)" />
+        </div>
+        {workstreams.map((task) => (
+          <article className="task-card" key={task.name}>
+            <div className="toolbar" style={{ justifyContent: "space-between" }}>
+              <strong>{task.name}</strong>
+              <span className={`badge ${task.status}`}>{task.status}</span>
             </div>
-            <div className="tool-block">
-              <strong>Research Lead · WebSearch</strong>
-              <div className="mono muted">"2026 K-12 robotics education grants" · 3.2s · $0.004</div>
+            <div className="muted">{task.owner} · {task.deliverable}</div>
+            <div>{task.next}</div>
+            <div className="toolbar">
+              <span className="badge">{task.subtasks} subtasks</span>
+              <span className="badge">{task.cost}</span>
+              <span className="badge">{task.kind}</span>
             </div>
-            <div className="message">
-              Early signal: public funding is concentrated around CTE, after-school STEM, and district-level
-              workforce readiness programs. Analyst is building a district fit score.
-            </div>
-          </div>
-          <div className="panel-header">
-            <textarea
-              aria-label="Manager instruction"
-              placeholder="Add context, redirect the team, or ask for a decision memo..."
-              rows={2}
-              style={{ width: "100%", resize: "vertical", background: "transparent", color: "inherit", border: 0 }}
-            />
-            <button className="button" type="button">Send</button>
-          </div>
-        </section>
-
-        <aside className="panel">
-          <div className="panel-header">
-            <span className="panel-title">Needs you</span>
-            <span className="badge awaiting">{decisionItems.length}</span>
-          </div>
-          <div className="panel-body stack">
-            {decisionItems.slice(0, 2).map((item) => (
-              <div className="message" key={item.title}>
-                <strong>{item.title}</strong>
-                <div className="muted">{item.question}</div>
-              </div>
-            ))}
-            <button className="button secondary" type="button">Open Decisions</button>
-          </div>
-        </aside>
-      </div>
+          </article>
+        ))}
+      </section>
     </PageScaffold>
   );
 }

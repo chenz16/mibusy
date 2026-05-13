@@ -18,6 +18,10 @@ class WorkerConfig:
     claude_home: Path
     poll_interval_seconds: float
     max_turns: int
+    llm_provider: str
+    deepseek_api_key: str | None
+    deepseek_base_url: str
+    deepseek_model: str
 
 
 def load_config() -> WorkerConfig:
@@ -32,6 +36,10 @@ def load_config() -> WorkerConfig:
         claude_home=Path(os.environ.get("CLAUDE_HOME", "/var/agent-claude-home")),
         poll_interval_seconds=float(os.environ.get("WORKER_POLL_INTERVAL_SECONDS", "2")),
         max_turns=int(os.environ.get("AGENT_MAX_TURNS", "10")),
+        llm_provider=os.environ.get("AGENT_LLM_PROVIDER", "claude_code").strip().lower(),
+        deepseek_api_key=os.environ.get("DEEPSEEK_API_KEY"),
+        deepseek_base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/"),
+        deepseek_model=os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro"),
     )
 
 
@@ -46,4 +54,3 @@ def allowed_tools_for_role(role: str, requested_tools: list[str] | None = None) 
     if role != "owner":
         allowed = [tool for tool in allowed if tool not in DANGEROUS_TOOLS]
     return allowed
-

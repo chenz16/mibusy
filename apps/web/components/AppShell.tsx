@@ -1,38 +1,44 @@
 "use client";
 
+import { Crown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { navGroups } from "../lib/ui-data";
+import { mobileTabs } from "../lib/ui-data";
+
+function isActive(pathname: string, href: string) {
+  if (pathname === "/" && href === "/chat") return true;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
     <div className="app-shell">
-      <aside className="sidebar" aria-label="Main navigation">
-        <div className="brand">
-          <div className="brand-title">Mibusy</div>
-          <div className="brand-subtitle">Virtual team HQ</div>
-        </div>
-        {navGroups.map((group) => (
-          <nav className="nav-section" key={group.label} aria-label={group.label}>
-            <div className="nav-label">{group.label}</div>
-            {group.items.map((item) => {
-              const Icon = item.icon;
-              const active = pathname === item.href || (pathname === "/" && item.href === "/chat");
-              return (
-                <Link className={`nav-item ${active ? "active" : ""}`} href={item.href} key={item.href}>
-                  <Icon size={17} />
-                  <span>{item.label}</span>
-                  {item.badge ? <small className="badge failed">{item.badge}</small> : null}
-                </Link>
-              );
-            })}
-          </nav>
-        ))}
-      </aside>
-      <main className="main">{children}</main>
+      <div className="phone-shell">
+        <header className="phone-status">
+          <div className="phone-brand">
+            <span className="brand-mark"><Crown size={15} /></span>
+            <span>Boardroom</span>
+          </div>
+          <div className="phone-context">CEO MODE</div>
+        </header>
+        <main className="main">{children}</main>
+        <nav className="bottom-tabs" aria-label="Boardroom mobile navigation">
+          {mobileTabs.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(pathname, item.href);
+            return (
+              <Link className={`tab-link ${active ? "active" : ""}`} href={item.href} key={item.href}>
+                <Icon size={20} />
+                <span>{item.label}</span>
+                {item.badge ? <span className="tab-badge">{item.badge}</span> : null}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
     </div>
   );
 }
