@@ -12,7 +12,7 @@ Status: in progress for full Stage 1; W0 DB runtime, Fly volume reboot, and Verc
 - Python SDK: installed in `.venv`
 - Web typecheck: `pnpm --filter web typecheck` passed
 - Web production build: `pnpm --filter web build` passed on Next.js 16.2.4, including `/chat`, `/tasks`, `/schedules`, `/inbox`, `/memory`, `/templates`, `/observe`, `/settings`
-- UI shell: Stage 1 control-plane navigation and 8 route skeletons implemented from `agent-platform-ui-design.md`
+- UI shell: Stage 1 control-plane navigation and 8 route skeletons implemented from `docs/product/agent-platform-ui-design.md`
 - Shared types: `packages/shared-types` defines session status, session event payloads, job payload, and template contracts; web SSE route imports the shared `SessionEventPayloadByKind` contract
 - Artifact audit: `pnpm spike:audit` passed
 - Migration parser check: `. .venv/bin/activate && python apps/spike/artifact_audit.py` parsed `0001_init.sql` as 59 statements
@@ -23,7 +23,7 @@ Status: in progress for full Stage 1; W0 DB runtime, Fly volume reboot, and Verc
 - Worker policy check: friend role strips `Bash` from requested tools; owner role can retain it
 - Worker unit tests: `PYTHONPATH=apps/worker/src python -m pytest apps/worker/tests` passed, 7 tests
 - Worker Fly config: `apps/worker/fly.toml.example` pins one VM, immediate deploy strategy, and `/var/agent-workspaces` persistent mount
-- Deployment verification: `.github/workflows/deploy-verify.yml` Fly target passed in run `25436592363`, including verification-mode deploy, volume stamp write, machine restart, and stamp read after restart. Vercel target passed in run `25440680723`, including protected preview automation bypass, Next 16 preview deploy, `/chat` probe, and `/templates` probe; see `docs/deployment-verification.md`
+- Deployment verification: `.github/workflows/deploy-verify.yml` Fly target passed in run `25436592363`, including verification-mode deploy, volume stamp write, machine restart, and stamp read after restart. Vercel target passed in run `25440680723`, including protected preview automation bypass, Next 16 preview deploy, `/chat` probe, and `/templates` probe; see `docs/implementation/deployment/deployment-verification.md`
 - Offline verification bundle: `pnpm verify:offline` runs web build, TS typecheck, artifact audit, and worker tests. SQL parser audit runs when `pglast` is installed; strict parser evidence is tracked separately via `. .venv/bin/activate && python apps/spike/artifact_audit.py`. GitHub Actions Offline Verify run `25416607958` passed on branch `stage1-agent-platform-verify`.
 - DB runtime CI: `.github/workflows/db-spike.yml` provisions `pgvector/pgvector:pg16` and runs `db:preflight`, `db:migrate`, `spike:db-all` for V7-V11, a Next.js invite/bootstrap HTTP E2E, and a DB-backed `/templates` page check. Run `25440165924` passed on branch `stage1-agent-platform-verify`.
 - Dev server: running at `http://localhost:3000`; Next reported file watcher `ENOSPC` warnings, but the page rendered successfully via `curl`

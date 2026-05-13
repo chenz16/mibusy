@@ -1377,7 +1377,7 @@ CREATE POLICY templates_write ON agent_templates FOR ALL
 | **V5: Subagent 调用可追踪** | 父 template 调 Agent tool,子 session 跑完 | 能拿到子的 session_id / cost / token,父 context 收到 summary |
 | **V6: Session 持久化与 resume** | 跑到一半 kill,从 sdk_session_path 恢复 | 历史 conversation 完整,能继续推理 |
 
-**输出:** `docs/spike-report.md`,记录每项实测结果 + 任何与文档不符的偏差,作为后续 schema 和 worker 实现的依据。
+**输出:** `docs/implementation/sdk/spike-report.md`,记录每项实测结果 + 任何与文档不符的偏差,作为后续 schema 和 worker 实现的依据。
 
 **Fallback 策略:** 如果某项验证失败,在 spike report 写明 workaround(例如 V4 不生效,改为 PostToolUse hook 里手动算 cost + 抛异常)。
 
@@ -2134,7 +2134,7 @@ CREATE TABLE invitations (
 5. budget 超限时 SDK 行为:抛异常?返回特殊 event?静默截断?三种处理逻辑都不一样。
 6. tool permission callback 是 sync 还是 async?能否在 callback 内做 DB 查询(查 inbox 已批准记录)?
 
-**Spike Report 模板:** `docs/spike-report.md`,每个验证项一节,结构:
+**Spike Report 模板:** `docs/implementation/sdk/spike-report.md`,每个验证项一节,结构:
 - 测试代码片段(< 30 行,贴在文档中)
 - 实测输出(关键 event/log)
 - 与文档预期的差异
@@ -2270,7 +2270,7 @@ W0 spike 期间还需要把分散在多处的 schema 合并为单一 migration �
 
 ### 怎么知道 W0 完成了
 
-打开 `docs/spike-report.md`(你需要新建这个文件),里面有 V1-V11 的结果。
+打开 `docs/implementation/sdk/spike-report.md`(你需要新建这个文件),里面有 V1-V11 的结果。
 
 每一项要么:
 - ✅ 通过 — 写明实测输出

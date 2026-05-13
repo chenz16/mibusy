@@ -49,9 +49,9 @@ REQUIRED_PATHS = [
     "packages/shared-types/package.json",
     "packages/shared-types/tsconfig.json",
     "packages/shared-types/src/index.ts",
-    "docs/spike-report.md",
-    "docs/completion-audit.md",
-    "docs/deployment-verification.md",
+    "docs/implementation/sdk/spike-report.md",
+    "docs/implementation/sdk/completion-audit.md",
+    "docs/implementation/deployment/deployment-verification.md",
     "docker-compose.yml",
     "pnpm-workspace.yaml",
     ".github/workflows/offline-verify.yml",
@@ -125,7 +125,7 @@ def main() -> None:
     ]
     assert_acyclic_template_edges(template_edges)
 
-    report = (ROOT / "docs/spike-report.md").read_text()
+    report = (ROOT / "docs/implementation/sdk/spike-report.md").read_text()
     for section in REQUIRED_REPORT_SECTIONS:
         assert_contains("spike report", report, section)
 

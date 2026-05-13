@@ -1,6 +1,6 @@
 # Completion Audit
 
-Objective: use `agent-platform-stage1-spec.md` as the active goal, implement the requested Stage 1 / Week 0 spike work in this repository, and verify the result.
+Objective: use `docs/product/agent-platform-stage1-spec.md` as the active goal, implement the requested Stage 1 / Week 0 spike work in this repository, and verify the result.
 
 Current verdict: not complete for the full Stage 1 product. Week 0 spike/runtime evidence is now green across DB Spike, Fly Deploy Verify, and Vercel Deploy Verify; remaining gaps are product-complete Stage 1 behavior such as real deployed DB-backed invite/bootstrap, Vercel LISTEN/NOTIFY comparison, and non-skeleton UI workflows.
 
@@ -14,7 +14,7 @@ Current verdict: not complete for the full Stage 1 product. Week 0 spike/runtime
 | Docker Compose Postgres + pgvector | `docker-compose.yml`; GitHub Actions uses `pgvector/pgvector:pg16` | Artifact done; runtime verified in CI |
 | W0 migration | `packages/db/migrations/0001_init.sql` | Done; parser check passed |
 | Seed templates | Five global templates and initial DAG edges in `0001_init.sql`; static DAG audit checks acyclic edges; migration applied and `/templates` DB page verified in DB Spike run `25440165924` | Done |
-| Spike report | `docs/spike-report.md` | Updated |
+| Spike report | `docs/implementation/sdk/spike-report.md` | Updated |
 | Artifact verifier | `apps/spike/artifact_audit.py` | Done |
 | Next SSE route | `apps/web/app/api/sessions/[id]/events/route.ts` | Done; build/typecheck passed |
 | Stage 1 UI shell | `/chat`, `/tasks`, `/schedules`, `/inbox`, `/memory`, `/templates`, `/observe`, `/settings` routes | Done; mostly static shell, with `/templates` reading DB when `DATABASE_URL` is configured |
@@ -37,7 +37,7 @@ Current verdict: not complete for the full Stage 1 product. Week 0 spike/runtime
 | Worker unit tests | `PYTHONPATH=apps/worker/src python -m pytest apps/worker/tests` | Passed, 7 tests |
 | Offline verification bundle | Local `pnpm verify:offline`; GitHub Actions Offline Verify run `25416607958` | Passed; runs web build, TS typecheck, artifact audit, worker tests. SQL parser check is optional unless `pglast` is installed |
 | DB runtime CI | `.github/workflows/db-spike.yml` run `25440165924` on branch `stage1-agent-platform-verify` | Passed |
-| Deployment verification workflow | `.github/workflows/deploy-verify.yml`; `docs/deployment-verification.md`; Fly target run `25436592363`; Vercel target run `25440680723` | Passed for Fly and Vercel |
+| Deployment verification workflow | `.github/workflows/deploy-verify.yml`; `docs/implementation/deployment/deployment-verification.md`; Fly target run `25436592363`; Vercel target run `25440680723` | Passed for Fly and Vercel |
 | SDK V1 | `python apps/spike/claude_sdk_spike.py v1` with clean `HOME` and API key | Passed |
 | SDK V2 | `python apps/spike/claude_sdk_spike.py v2`, `v2hook` | Failed; fallback required |
 | SDK V3 | `python apps/spike/claude_sdk_spike.py v3` | Partial |
