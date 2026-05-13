@@ -3,17 +3,21 @@
 > 1 人公司 Hobby Project · 基于 Anthropic Claude Agent SDK
 > 路径定位:Hobby → 第二阶段商业化 SaaS
 
+> **产品定位澄清:** 这里的 "Solo" 指 **solo founder / manager / CEO 的使用场景**,不是指系统里只有一个 agent。产品目标是给一个管理者提供一支可委派、可追踪、可审批的虚拟团队。
+
 ---
 
 ## 文档版本与状态(Status Banner)
 
-**版本:** v1.1 — 开发就绪(Development-Ready)
-**最后更新:** 2026-05-05
-**当前阶段:** ✅ Spec 闭环完成,可启动 Week 0 spike
+**版本:** v1.2 — 产品定位修订(Product-Repositioned)
+**最后更新:** 2026-05-13
+**当前阶段:** ⚠️ Week 0 技术 spike 已推进;产品语义需从"单 agent 控制台"修订为"CEO/manager 虚拟团队"
 
 ### 这个文档是什么
 
 一份完整的产品 + 架构 + 工程规格,告诉你(或未来的你自己)**为什么做这件事 / 做什么 / 怎么做 / 信息从哪来**。
+
+**核心产品一句话:** 面向 solo founder / manager / CEO 的虚拟团队操作系统。用户不是在"使用一个 agent",而是在管理一组虚拟员工/角色,把目标拆给他们,看进展,做审批,收交付。
 
 **不含**:可运行的代码、UI 设计稿、客户协议、商业模式。
 
@@ -40,7 +44,7 @@
 
 ### 下一步该干什么
 
-**不再修文档了。** 进入 Week 0 spike。
+进入 Week 0 spike 与产品语义修订同步推进。技术 spike 已经验证了 agent runtime、DB、worker、deploy 基础;下一步需要把 UI/需求文案统一到"虚拟团队"心智模型。
 
 具体看本文档末尾的 **§"下一步行动" 章节**(在所有附录之后)。
 
@@ -106,9 +110,19 @@
 
 ### 0.2.1 核心问题
 
-> **作为一个 1 人开发者,如何搭建一个 agent 平台,使其在第一阶段能服务自己 + 1-2 个朋友的真实日常使用,且架构上不阻塞第二阶段演进为商业化 SaaS?**
+> **作为一个 solo founder / manager / CEO,如何搭建一支虚拟 AI 团队,让它能承担研究、写作、跟进、提醒、项目推进等日常管理工作,并且像真实团队一样可委派、可追踪、可审批、可复盘?**
 
-这不是一个工具型问题(写个脚本能解决的事),也不是一个产品型问题(造一个新品类),而是一个**架构选择问题**:在已有的 agent 运行时基础上,如何设计 control plane,使得"现在好用"与"未来能扩"两个目标不冲突。
+这不是一个"单 agent chat"问题,也不是一个"脚本自动化"问题,而是一个**虚拟团队 control plane**问题:在已有 agent runtime 之上,如何把不同角色组织起来,让管理者用目标、审批和交付物来驱动工作,而不是逐条 prompt 操作一个 bot。
+
+Stage 1 的正确心智模型是:
+
+- 用户 = manager / CEO / founder
+- agent template = 虚拟团队角色 / 岗位说明书
+- agent session = 一次委派的工作项 / assignment
+- subagent = 角色内部同步调用的专家
+- subprocess/job = 独立派出去的后台工作流
+- inbox = 需要管理者决策/审批/补充信息的队列
+- observability = 虚拟团队运营面板,不是底层 debug 页
 
 ### 0.2.2 子问题分解
 
@@ -118,15 +132,17 @@
 |---|---|---|
 | **SP1. Runtime 选型** | Agent SDK / Managed Agents / 第三方框架(OpenClaw 等)如何取舍 | §0.3 |
 | **SP2. Lifecycle 管理** | 谁创建 agent、谁追踪状态、谁回收资源、人机如何异步协作 | §7, §11 |
-| **SP3. Agent 间协作模型** | Template 关系、调用语义(同步/异步)、上下文传递 | §2 |
+| **SP3. 虚拟团队协作模型** | 角色关系、委派语义(同步/异步)、上下文传递 | §2 |
 | **SP4. 上下文与记忆** | 事实型知识 / 历史会话 / 当前状态分别用什么方式检索 | §2.4, §6.5 |
 | **SP5. 多租户演进** | Stage 1 轻度隔离如何无缝升级为 Stage 2 商业级隔离 | §9, §10 |
+| **SP6. 管理者工作台体验** | CEO/manager 如何下达目标、看进度、审批、收交付 | §3, §4 |
 
 ### 0.2.3 反问题(明确不解决什么)
 
 为避免范围蔓延,明确这些问题**不在本项目目标内**:
 
 - ❌ "如何造一个比 ChatGPT 更好的 chat 产品" — 这是产品问题,不是架构问题
+- ❌ "如何做一个单 agent 助手" — 产品目标是一支虚拟团队,不是一个 assistant
 - ❌ "如何训练自己的 agent 模型" — 用现成 LLM,不做训练
 - ❌ "如何做 LLM 路由 / token 经纪" — 单后端 Anthropic,LiteLLM 只作为切换备份
 - ❌ "如何搭企业级合规体系" — Stage 2 的命题,Stage 1 只留接口
@@ -177,14 +193,16 @@ OpenClaw 在 Stage 1 的合理位置是:**作为 personal assistant 在本地装
 
 | 功能需求(§4) | 来自子问题 | 动机 |
 |---|---|---|
-| Chat 区(场景 A) | SP3 | 同步对话场景,subagent 调用模式的主要触发点 |
-| Tasks 区(场景 B) | SP2 | 长任务的 lifecycle 管理(awaiting_input 释放 worker 是核心) |
-| Schedules 区(场景 C) | SP2 | cron 触发 + 自动失败处理,验证 lifecycle 在无人值守下的鲁棒性 |
-| Inbox 区 | SP2 | 人机异步边界,AskUserQuestion 闭环 |
-| Memory 区 | SP4 | Layer 1 实现,Layer 2/3 留位 |
-| Templates 管理 | SP3 | DAG 调用图配置入口 |
+| CEO Desk / Command Center(原 Chat 区) | SP3 + SP6 | 管理者下达目标、追问、复盘;同步对话只是其中一种交互形式 |
+| Workstreams / Initiatives(原 Tasks 区) | SP2 + SP6 | 长任务的 lifecycle 管理,以业务目标/交付物为中心,不是技术 task 列表 |
+| Schedules / Operating Rhythms(原 Schedules 区) | SP2 + SP6 | 例会、日报、市场监控等无人值守节奏 |
+| Decisions / Approvals(原 Inbox 区) | SP2 + SP6 | 人机异步边界,管理者只在需要判断/授权时介入 |
+| Company Memory(原 Memory 区) | SP4 | 管理者偏好、公司事实、历史决策和交付物可检索 |
+| Virtual Team / Roles(原 Templates 管理) | SP3 + SP6 | 虚拟团队岗位、能力边界、预算、可委派关系的配置入口 |
 | Settings 区 | SP5 | 多租户隔离的运营接口(邀请、预算、kill switch) |
-| Observability 区 | SP2 + SP5 | cost 归因 + tenant 维度拆分 |
+| Operating Dashboard(原 Observability 区) | SP2 + SP5 + SP6 | 进度、风险、成本、等待审批、团队吞吐的管理视图 |
+
+**命名修订原则:** 技术层仍可保留 `agent_templates` / `agent_sessions` / `jobs` 等名称,但产品层必须使用 manager/CEO 能理解的词:Team Members, Roles, Workstreams, Assignments, Decisions, Briefings, Deliverables。
 
 ### 0.4.2 非功能需求 → 子问题映射
 
@@ -242,11 +260,24 @@ OpenClaw 在 Stage 1 的合理位置是:**作为 personal assistant 在本地装
 
 ### 1.2 阶段使命
 
-**Stage 1 = "私人 agent 平台,长成 SaaS 的样子"**
+**Stage 1 = "manager/CEO 的私人虚拟团队,长成 SaaS 的样子"**
 
 - 不是"我自己用的脚本工具"
+- 不是"单 agent chat UI"
 - 也不是"完整商业 SaaS"
-- 是中间形态:功能上 1-3 个用户能用,架构上为 Stage 2 商业化预留接口
+- 是中间形态:功能上 1-3 个 manager/CEO/founder 能把真实工作委派给一组虚拟角色,架构上为 Stage 2 商业化预留接口
+
+### 1.2.1 产品北极星
+
+用户每天打开系统时,看到的不是"一个聊天窗口",而是:
+
+- 今天虚拟团队正在推进什么
+- 哪些工作卡住了,需要我决策
+- 哪些交付物已经完成,质量如何
+- 哪些角色/工作流花了多少钱
+- 哪些公司记忆/偏好已经被团队吸收
+
+Stage 1 的 UI 和文案必须围绕 **委派、进展、审批、交付、复盘** 组织,chat 只是 manager 与虚拟团队沟通的一种通道。
 
 ### 1.3 Stage 1 不做什么
 
@@ -267,6 +298,8 @@ Stage 1 结束时应满足:
 
 - [ ] 自己 + 1-2 个朋友用了至少 4 周,出过 100+ session
 - [ ] 三种调用场景(对话/后台/定时)都跑通
+- [ ] 至少 5 个虚拟团队角色能承担不同职能(如 Chief of Staff / Research Lead / Writer / Scheduler / Analyst)
+- [ ] 每个运行中的工作项都能回答:owner 目标是什么、哪个角色负责、当前状态、下一步、需要不需要 manager 介入、交付物在哪里
 - [ ] 月运维成本 ≤ $30(LLM token 费另算)
 - [ ] 单租户数据零泄漏到其他租户
 - [ ] Schema 不需要重大重构就能进 Stage 2
@@ -274,6 +307,25 @@ Stage 1 结束时应满足:
 ---
 
 ## 2. 核心概念与心智模型
+
+### 2.0 产品语义映射
+
+技术实现可以继续使用 agent/template/session/job 等中性术语,但用户体验必须呈现为虚拟团队:
+
+| 技术概念 | 产品概念 | 给用户的含义 |
+|---|---|---|
+| `agent_templates` | Team roles / virtual team members | 虚拟团队里的岗位:Chief of Staff、Research Lead、Writer、Scheduler、Analyst |
+| `template_invocation_edges` | Delegation rules | 哪个角色可以把工作交给哪个角色 |
+| `agent_sessions` | Assignments / work items | 一次被委派出去的具体工作 |
+| root session | Initiative / workstream | 一个 manager 目标下的主工作流 |
+| child session | Subtask / specialist assist | 主负责人调用专家或拆出的子任务 |
+| `jobs` | Execution queue | 等待 worker 执行的后台工作 |
+| `session_events` | Work log / trace | 工作过程、工具调用、状态变化 |
+| `inbox_items` | Decisions / approvals | 需要 manager 介入的问题 |
+| `session_summaries` | Staff reports / deliverable summaries | 工作总结、交付物摘要 |
+| `persona_facts` | Manager preferences | 管理者偏好与长期工作方式 |
+
+**产品文案约束:** 面向用户的页面、按钮、空状态、导航避免默认使用 "agent session / template / job"。除非是开发者调试页,否则优先使用 team, role, assignment, initiative, decision, briefing, deliverable。
 
 ### 2.1 Template vs Session
 
@@ -327,37 +379,40 @@ Stage 1 对 B 类做完整的"Layer 1 + 检索":per-session summary、embedding�
 
 ## 3. 三个核心使用场景
 
-Stage 1 必须把这三种场景都跑通,因为它们暴露的架构需求互补。
+Stage 1 必须把这三种场景都跑通,因为它们暴露的架构需求互补。所有场景都从 manager/CEO 的委派视角出发,不是从 agent 技术能力出发。
 
-### 3.1 场景 A:对话型(即发即得)
-
-**典型流程:**
-1. 打开 web UI 进入 chat 区
-2. 选 template(默认 `general_assistant`)
-3. 输入需求,即时收到流式响应(状态 + tool_use / tool_result + final summary)
-4. 中途可:暂停、注入消息、改预算、kill
-5. 多轮对话,session 持续
-
-**暴露架构需求:** Streaming(SSE)、worker 长连接、permission ask 闭环
-
-### 3.2 场景 B:后台任务(几分钟到几小时)
+### 3.1 场景 A:CEO Desk / 即时委派与追问
 
 **典型流程:**
-1. 进 Tasks 区,点"启动后台任务"
-2. 选 template(如 `research_agent`)+ 输入 prompt + 设预算 + 设结果通知方式
-3. 提交后立刻返回 task ID,关掉浏览器
-4. Worker 后台跑,可能 30 分钟到几小时
-5. 完成后:邮件 / inbox 通知,回来看 trace 和结果
+1. 打开 CEO Desk,看到今日 briefing、等待决策、进行中的 workstreams
+2. 输入一个管理目标,例如"帮我评估下周要不要联系这 20 个 school districts"
+3. 选择或让系统推荐负责人角色(默认 Chief of Staff)
+4. 负责人可同步调用 Research Lead / Analyst / Writer 等角色
+5. manager 看到状态、工具调用、关键中间结论和最终 deliverable
+6. 中途可:暂停、补充背景、改预算、kill、要求换角色继续
+
+**暴露架构需求:** Streaming(SSE)、worker 长连接、permission ask 闭环、角色 delegation trace
+
+### 3.2 场景 B:Workstream / 后台推进
+
+**典型流程:**
+1. manager 创建一个 workstream,例如"找 10 个潜在 K-12 机器人教育渠道合作方"
+2. 选择 owner role(如 Research Lead)+ 输入目标、约束、预算、交付物格式
+3. 提交后立刻返回 initiative/workstream ID,manager 可以关掉浏览器
+4. 虚拟团队后台推进,可能 30 分钟到几小时
+5. 过程中需要判断时进入 Decisions/Approvals
+6. 完成后:邮件 / inbox 通知,回来看 deliverable、trace、cost 和复盘
 
 **暴露架构需求:** 异步执行、worker 长任务持久化(单 Fly machine + volume,详见 EB-006)、状态机的 awaiting_input 释放、终态归档
 
-### 3.3 场景 C:定时任务(无人值守)
+### 3.3 场景 C:Operating Rhythms / 定时管理节奏
 
 **典型流程:**
-1. 进 Schedules 区,新建定时任务
-2. 配置:cron 表达式 + template + prompt 模板 + 通知渠道
+1. manager 新建一个 operating rhythm,例如"每天 9 点给我市场动态 briefing"
+2. 配置:cron 表达式或预设 + 负责人角色 + prompt 模板 + 通知渠道
 3. 系统按时自动触发,无人监督
 4. 失败 N 次自动 disable + 告警
+5. 周/月维度可看 rhythm 产出质量和成本
 
 **暴露架构需求:** 调度器、自动重试、失败告警、cost cap 防失控
 
@@ -365,42 +420,43 @@ Stage 1 必须把这三种场景都跑通,因为它们暴露的架构需求互�
 
 ## 4. 产品功能(用户视角)
 
-Web App 分 7 个区,前 5 个是日常使用,后 2 个是管理。
+Web App 分 7 个区,前 5 个是 manager/CEO 的日常操作面,后 2 个是团队/系统管理。导航命名以虚拟团队为准;括号中保留旧技术页面名,仅用于迁移。
 
-### 4.1 Chat 区(场景 A 入口)
+### 4.1 CEO Desk / Command Center(原 Chat 区)
 
-- **Conversation 列表**:历史对话,按 template 或时间分组,搜索
-- **单 chat 视图**:streaming 显示状态 + tool_use / tool_result + 最终 summary(thinking 不渲染,详见 EB-009)
-- **中途控制**:暂停、注入消息、改 budget、kill
-- **Template 切换**:进 chat 时可选,默认 `general_assistant`
-- **历史 trace**:每个 chat 关联一棵 session tree,可展开看子 session
+- **Today briefing**:今天进行中的 workstreams、等待决策、完成交付
+- **Command box**:manager 输入目标/问题,系统推荐负责人角色和预算
+- **Live work view**:streaming 显示状态 + tool_use / tool_result + 最终 deliverable(thinking 不渲染,详见 EB-009)
+- **中途控制**:暂停、补充背景、改 budget、kill、要求换角色继续
+- **Role 切换**:启动 assignment 时可选负责人,默认 Chief of Staff
+- **历史 trace**:每个 assignment 关联一棵 session tree,可展开看子任务和 specialist assist
 
-### 4.2 Tasks 区(场景 B 入口)
+### 4.2 Workstreams / Initiatives(原 Tasks 区)
 
-- **新建任务表单**:template / prompt / budget / 通知方式 / tags
-- **任务列表**:running / completed / failed 三态,显示 cost、duration、子 session 数
-- **详情页**:完整 trace tree(本地简版 + Langfuse 跳转)
-- **复跑/Fork**:从某个 turn 分叉重跑(P1)
+- **新建 workstream 表单**:owner role / objective / constraints / deliverable format / budget / 通知方式 / tags
+- **工作流列表**:running / awaiting decision / completed / failed,显示 owner role、cost、duration、子任务数
+- **详情页**:目标、负责人、当前状态、下一步、deliverables、完整 trace tree(本地简版 + Langfuse 跳转)
+- **复跑/Fork**:从某个 milestone 或 deliverable 分叉重跑(P1)
 
-### 4.3 Schedules 区(场景 C 入口)
+### 4.3 Operating Rhythms(原 Schedules 区)
 
-- **新建定时**:cron 表达式或预设(每天/每周一/...)+ template + prompt 模板
+- **新建 rhythm**:cron 表达式或预设(每天/每周一/...)+ owner role + briefing/deliverable 模板
 - **列表**:enabled / disabled、上次/下次运行时间、最近 5 次状态
-- **详情**:历史运行结果,失败原因,可手动 trigger 一次
+- **详情**:历史 briefing/deliverables、失败原因、可手动 trigger 一次
 
-### 4.4 Inbox 区(横跨三场景)
+### 4.4 Decisions / Approvals(原 Inbox 区)
 
-- Agent AskUserQuestion / approval / review 命中时落到这里
-- 卡片形式:问题 + 上下文 + answer 输入
-- 回答后自动 resume session
+- AskUserQuestion / approval / review 命中时落到这里
+- 卡片形式:问题 + 背景 + 推荐选项 + 风险/成本影响 + answer 输入
+- 回答后自动 resume assignment
 - 24h 不答自动取消(可配置)
 - 邮件 + web 推送
 
-### 4.5 Memory 区(辅助)
+### 4.5 Company Memory
 
-- 浏览 session summaries(Layer 1)
-- 搜索历史(向量检索)
-- 手动编辑 / 删除 summary(P1)
+- 浏览 staff reports / session summaries(Layer 1)
+- 搜索历史决策、交付物、公司事实(向量检索)
+- 管理 manager preferences / company facts(P1;Stage 1 先只读或半自动)
 - Layer 2/3 的占位入口(Stage 2 实现)
 
 ### 4.6 Settings 区
@@ -415,19 +471,36 @@ Web App 分 7 个区,前 5 个是日常使用,后 2 个是管理。
 - Kill switch(一键停所有 running session)
 - 邀请朋友(生成邀请码)
 
-### 4.7 Observability 区
+### 4.7 Operating Dashboard(原 Observability 区)
 
-- **Cost dashboard**:今日/本周/本月,按 template / 用户 / 租户拆分
-- **Recent traces**:最近 50 个 session,成功率、平均时长、平均 cost
+- **Team health**:running / awaiting decision / blocked / completed
+- **Cost dashboard**:今日/本周/本月,按 role / user / tenant 拆分
+- **Recent work logs**:最近 50 个 assignment,成功率、平均时长、平均 cost
 - **Langfuse 嵌入**:深度 trace 跳转
 
-### 4.8 Templates 管理(管理后台)
+### 4.8 Virtual Team / Roles(原 Templates 管理)
 
-- **列出**:全局 template + 自己的私有 template
-- **编辑**:prompt / tools / skills / MCP / budget / 调用图(can_invoke)
+- **列出**:全局 roles + 自己的私有 roles
+- **角色卡片**:岗位名称、职责、擅长事项、可用工具、默认预算、可委派对象
+- **编辑**:role prompt / tools / skills / MCP / budget / delegation graph(can_invoke)
 - **版本**:每次保存自动 +revision,在跑的 session 锁定旧 revision
-- **测试**:用当前 template 起临时 session 验证
-- **Fork**:从全局 template 复制到自己租户后修改
+- **测试**:用当前 role 起临时 assignment 验证
+- **Fork**:从全局 role 复制到自己租户后修改
+
+### 4.9 Stage 1 默认虚拟团队角色
+
+Stage 1 seed roles 必须以 manager/CEO 日常工作为中心,而不是以 generic agent 能力命名。底层仍可复用 `agent_templates` 表。
+
+| Role | 底层 template 建议名 | 职责 | 默认交付物 | 可委派给 |
+|---|---|---|---|---|
+| Chief of Staff | `chief_of_staff` | 接收 manager 目标,拆解工作,协调其他角色,汇总 briefing | plan、status update、decision memo | Research Lead, Analyst, Writer, Scheduler |
+| Research Lead | `research_lead` | 市场/竞品/客户/政策研究,收集来源并给判断 | research brief、source list | Analyst, Writer |
+| Analyst | `analyst` | 表格化比较、成本收益、优先级排序、风险分析 | comparison table、recommendation | Writer |
+| Writer | `writer` | 把研究/决策转成邮件、proposal、memo、网页文案 | draft、final copy | none |
+| Scheduler / Follow-up Lead | `scheduler_agent` | 定时检查、提醒、跟进、生成周期性 briefing | reminder、daily/weekly briefing | Research Lead |
+| Personal Assistant | `personal_assistant` | 处理低风险个人事务、整理上下文、准备会议前材料 | checklist、prep note | Chief of Staff |
+
+**命名迁移:** 现有 `general_assistant` / `research_agent` / `writer_agent` / `notifier_agent` / `scheduler_agent` 可以作为 Week 0 技术 seed,但进入产品 UI 前应迁移或展示为上表 role 名。不要在面向用户的首屏继续把产品叫做 "Templates"。
 
 ---
 
