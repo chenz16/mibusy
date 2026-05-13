@@ -6,6 +6,10 @@ Mibusy should model a company as real humans plus virtual staff working through 
 
 The product should not expose a deep virtual org chart where agents manage agents. The owner should manage tasks, decisions, deliverables, budgets, and a small set of trusted staff. Company complexity should grow through more humans, more Desks, and more shared context, not through infinite agent hierarchy.
 
+If a CEO or manager needs more permanent staff, they should explicitly hire or create those staff members in the product. If they do not create permanent staff, the underlying runtime may still create short-lived task helpers on demand, but those helpers are not standing members of the organization. They are temporary execution artifacts with a parent assignment, TTL, budget, and audit trail.
+
+The system may automatically extract reusable skills after tasks complete. This lets runtime experience compound without forcing the user to manage more agent layers. The product should simplify hierarchy for real users: agents may call each other through controlled tools, but the visible staff structure remains shallow.
+
 Core principle:
 
 > Humans own accountability. Virtual agents execute within a human-owned Desk. Cross-person collaboration happens through handoffs and shared artifacts.
@@ -72,6 +76,7 @@ A human user is the accountability holder.
 Humans can:
 
 - create permanent virtual agents
+- enable or customize default system staff
 - approve high-risk actions
 - change Desk permissions
 - accept or reject handoffs
@@ -85,6 +90,19 @@ Each human acts like a small CEO inside their allowed scope.
 
 A virtual agent is a permanent AI staff member attached to one Desk.
 
+Some virtual agents are default system staff. They behave like company tools that are available when a workspace or Desk is created. Examples:
+
+- report summarizer
+- research specialist
+- analyst
+- writer
+- scheduler
+- follow-up assistant
+- meeting note taker
+- inbox triage assistant
+
+Default system staff should feel like built-in company capabilities, not like a complex org chart. A human can enable, disable, rename, customize, or duplicate them, but the product should not force the human to design every common role from scratch.
+
 Virtual agents can:
 
 - receive assignments from their human owner
@@ -94,6 +112,7 @@ Virtual agents can:
 - propose new memory
 - request delegation through a tool
 - spawn temporary helpers if allowed
+- call other permitted agents through Orchestrator-controlled tools
 
 Virtual agents cannot:
 
@@ -102,6 +121,45 @@ Virtual agents cannot:
 - directly command another human
 - directly control another user's agents
 - recursively build a deep permanent org chart
+- convert temporary helpers into permanent staff without human approval
+
+### Default System Staff
+
+Default system staff are permanent staff templates provided by Mibusy.
+
+They are similar to company tools:
+
+```text
+Research Specialist
+Report Summarizer
+Analyst
+Writer
+Scheduler
+Meeting Note Taker
+Inbox Triage
+Follow-up Assistant
+```
+
+Default system staff give a new user a useful team immediately. They also reduce management burden because the user only customizes exceptions.
+
+Rules:
+
+- default staff are created from trusted templates
+- they can be enabled by default for a new Desk
+- the user can disable roles they do not need
+- the user can rename or customize a role
+- the user can duplicate a default role into a specialized role
+- system templates are maintained by Mibusy
+- customized copies belong to the user's workspace
+
+This creates a simple path:
+
+```text
+Start with default staff
+  -> customize a few roles
+  -> create new permanent staff only when recurring work justifies it
+  -> use temporary helpers for occasional subwork
+```
 
 ### Chief of Staff / Super Agent
 
@@ -266,6 +324,21 @@ Human
 Temporary helpers cannot spawn more helpers.
 
 Permanent agents cannot create permanent agents. They can only propose a new permanent role to a human.
+
+If the human decides the recurring need is real, they can create a new permanent staff member. Until then, the runtime can satisfy occasional needs by creating temporary helpers under a specific assignment.
+
+This gives the system two kinds of expansion:
+
+```text
+Visible organization expansion:
+  Human explicitly creates a permanent staff member.
+
+Runtime execution expansion:
+  Agent runtime creates temporary helpers for one task.
+  Helpers disappear or archive when the task ends.
+```
+
+The first changes the user's staff roster. The second only changes the task trace.
 
 ### Why This Constraint Exists
 
@@ -708,6 +781,10 @@ Tasks:
 8. Desk context is shared by humans and agents attached to that Desk.
 9. Company memory is shared only according to workspace policy.
 10. Runtime engines are swappable; product identity lives in Mibusy.
+11. More permanent staff must be created or enabled by humans, not silently by runtimes.
+12. Runtime-created helpers are temporary, assignment-scoped, and non-standing.
+13. Completed task traces may automatically propose or improve skills.
+14. Common roles should exist as default system staff templates.
 
 ## Stage 1 Recommendation
 
