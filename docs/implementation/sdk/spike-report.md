@@ -12,7 +12,7 @@ Status: in progress for full Stage 1; W0 DB runtime, Fly volume reboot, and Verc
 - Python SDK: installed in `.venv`
 - Web typecheck: `pnpm --filter web typecheck` passed
 - Web production build: `pnpm --filter web build` passed on Next.js 16.2.4, including `/chat`, `/tasks`, `/schedules`, `/inbox`, `/memory`, `/templates`, `/observe`, `/settings`
-- UI shell: Stage 1 control-plane navigation and 8 route skeletons implemented from `docs/product/agent-platform-ui-design.md`
+- UI shell: Stage 1 control-plane navigation and 8 route skeletons implemented from `docs/product/v1-agent-platform-ui-design.md`
 - Shared types: `packages/shared-types` defines session status, session event payloads, job payload, and template contracts; web SSE route imports the shared `SessionEventPayloadByKind` contract
 - Artifact audit: `pnpm spike:audit` passed
 - Migration parser check: `. .venv/bin/activate && python apps/spike/artifact_audit.py` parsed `0001_init.sql` as 59 statements

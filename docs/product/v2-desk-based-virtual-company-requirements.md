@@ -4,6 +4,8 @@
 
 Mibusy should model a company as real humans plus virtual staff working through shared role workspaces called **Desks**.
 
+Current UI direction: `docs/product/v2-boardroom-mobile-ui-design.md`.
+
 The product should not expose a deep virtual org chart where agents manage agents. The owner should manage tasks, decisions, deliverables, budgets, and a small set of trusted staff. Company complexity should grow through more humans, more Desks, and more shared context, not through infinite agent hierarchy.
 
 If a CEO or manager needs more permanent staff, they should explicitly hire or create those staff members in the product. If they do not create permanent staff, the underlying runtime may still create short-lived task helpers on demand, but those helpers are not standing members of the organization. They are temporary execution artifacts with a parent assignment, TTL, budget, and audit trail.

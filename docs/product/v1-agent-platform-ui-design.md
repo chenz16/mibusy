@@ -1,5 +1,7 @@
 # Solo Agent Platform — UI Design Spec
 
+> **First-version historical UI spec.** Current UI direction is `docs/product/v2-boardroom-mobile-ui-design.md`.
+
 > 研究基础: LangChain Agent Inbox / OpenHands / Langfuse / Claude.ai
 > 技术栈: Next.js 15 App Router · shadcn/ui · Tailwind v4 · 深色优先
 > 产品边界: Stage 1 私人 agent 平台,服务 owner + 1-2 个朋友,但按未来 SaaS control plane 的信息架构设计

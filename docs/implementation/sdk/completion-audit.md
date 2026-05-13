@@ -1,6 +1,6 @@
 # Completion Audit
 
-Objective: use `docs/product/agent-platform-stage1-spec.md` as the active goal, implement the requested Stage 1 / Week 0 spike work in this repository, and verify the result.
+Objective: use `docs/product/v1-agent-platform-stage1-spec.md` as the active goal, implement the requested Stage 1 / Week 0 spike work in this repository, and verify the result.
 
 Current verdict: not complete for the full Stage 1 product. Week 0 spike/runtime evidence is now green across DB Spike, Fly Deploy Verify, and Vercel Deploy Verify; remaining gaps are product-complete Stage 1 behavior such as real deployed DB-backed invite/bootstrap, Vercel LISTEN/NOTIFY comparison, and non-skeleton UI workflows.
 
