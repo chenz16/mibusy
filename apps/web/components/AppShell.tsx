@@ -12,8 +12,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-shell">
       <aside className="sidebar" aria-label="Main navigation">
         <div className="brand">
-          <div className="brand-title">Solo Agent</div>
-          <div className="brand-subtitle">Owner workspace</div>
+          <div className="brand-title">Mibusy</div>
+          <div className="brand-subtitle">Virtual team HQ</div>
         </div>
         {navGroups.map((group) => (
           <nav className="nav-section" key={group.label} aria-label={group.label}>
@@ -36,4 +36,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

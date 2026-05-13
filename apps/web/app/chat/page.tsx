@@ -2,39 +2,52 @@ import { Play, Square } from "lucide-react";
 
 import { PageScaffold } from "../../components/PageScaffold";
 import { StatusBadge } from "../../components/StatusBadge";
+import { decisionItems, operatingMetrics, workstreams } from "../../lib/ui-data";
 
 export default function ChatPage() {
   return (
     <PageScaffold
-      title="Chat"
-      subtitle="Streaming workspace for immediate sessions, tool events, budget control, and trace handoff."
+      title="CEO Desk"
+      subtitle="Delegate objectives to a virtual team, review live work, and make decisions only when your judgment is needed."
       action={
         <>
           <button className="button secondary" type="button">
             <Square size={15} />
-            Kill
+            Pause team
           </button>
           <button className="button" type="button">
             <Play size={15} />
-            New chat
+            Delegate objective
           </button>
         </>
       }
     >
+      <div className="split" style={{ paddingTop: 18 }}>
+        {operatingMetrics.map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <section className="panel" key={metric.label}>
+              <div className="metric">
+                <div className="muted"><Icon size={15} /> {metric.label}</div>
+                <div className="metric-value">{metric.value}</div>
+                <div className="muted">{metric.note}</div>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
       <div className="chat-layout">
         <section className="panel">
           <div className="panel-header">
-            <span className="panel-title">Sessions</span>
-            <span className="badge">Search</span>
+            <span className="panel-title">Today brief</span>
+            <span className="badge completed">Live</span>
           </div>
           <div className="panel-body session-list">
-            {["Today", "Yesterday", "Past 7 days"].map((group) => (
-              <div key={group}>
-                <div className="nav-label">{group}</div>
-                <div className="message">
-                  <strong>research_agent</strong>
-                  <div className="muted">K-12 robotics market scan · 14:23</div>
-                </div>
+            {workstreams.map((workstream) => (
+              <div className="message" key={workstream.name}>
+                <strong>{workstream.name}</strong>
+                <div className="muted">{workstream.owner} · {workstream.deliverable}</div>
               </div>
             ))}
           </div>
@@ -42,27 +55,28 @@ export default function ChatPage() {
 
         <section className="panel">
           <div className="panel-header">
-            <span className="panel-title">research_agent@3</span>
+            <span className="panel-title">K-12 district outreach strategy</span>
             <StatusBadge state="running" />
           </div>
           <div className="panel-body message-list">
-            <div className="message user">Find current robotics education opportunities for US schools.</div>
+            <div className="message user">Find the 20 best districts to approach for robotics education pilots.</div>
             <div className="message">
-              <span className="muted">Working...</span>
+              <strong>Chief of Staff</strong>
+              <div className="muted">Split into research, scoring, and outreach draft. Research Lead owns first pass.</div>
             </div>
             <div className="tool-block">
-              <strong>WebSearch</strong>
+              <strong>Research Lead · WebSearch</strong>
               <div className="mono muted">"2026 K-12 robotics education grants" · 3.2s · $0.004</div>
             </div>
             <div className="message">
               Early signal: public funding is concentrated around CTE, after-school STEM, and district-level
-              workforce readiness programs.
+              workforce readiness programs. Analyst is building a district fit score.
             </div>
           </div>
           <div className="panel-header">
             <textarea
-              aria-label="Message"
-              placeholder="Send a message or inject a correction..."
+              aria-label="Manager instruction"
+              placeholder="Add context, redirect the team, or ask for a decision memo..."
               rows={2}
               style={{ width: "100%", resize: "vertical", background: "transparent", color: "inherit", border: 0 }}
             />
@@ -72,21 +86,17 @@ export default function ChatPage() {
 
         <aside className="panel">
           <div className="panel-header">
-            <span className="panel-title">Session info</span>
+            <span className="panel-title">Needs you</span>
+            <span className="badge awaiting">{decisionItems.length}</span>
           </div>
           <div className="panel-body stack">
-            <div>
-              <div className="muted">Budget</div>
-              <strong>$0.31 / $5.00</strong>
-            </div>
-            <div>
-              <div className="muted">Tree</div>
-              <div className="mono">root {">"} research_agent child</div>
-            </div>
-            <div>
-              <div className="muted">Recent events</div>
-              <div className="mono">tool_use · tool_result · message_chunk</div>
-            </div>
+            {decisionItems.slice(0, 2).map((item) => (
+              <div className="message" key={item.title}>
+                <strong>{item.title}</strong>
+                <div className="muted">{item.question}</div>
+              </div>
+            ))}
+            <button className="button secondary" type="button">Open Decisions</button>
           </div>
         </aside>
       </div>

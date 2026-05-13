@@ -1,35 +1,44 @@
 import { Search } from "lucide-react";
 
 import { PageScaffold } from "../../components/PageScaffold";
+import { memoryRows } from "../../lib/ui-data";
 
 export default function MemoryPage() {
   return (
-    <PageScaffold title="Memory" subtitle="Layer 1 session summaries with semantic retrieval. Layer 2/3 stay read-only placeholders.">
+    <PageScaffold
+      title="Company Memory"
+      subtitle="Searchable decisions, staff reports, company facts, and manager preferences that the virtual team should reuse."
+    >
       <div className="content-grid">
         <section className="panel">
           <div className="panel-header">
-            <span className="panel-title"><Search size={15} /> Search summaries</span>
-            <span className="badge">Top 10</span>
+            <span className="panel-title"><Search size={15} /> Search operating memory</span>
+            <span className="badge">Layer 1 + retrieval</span>
           </div>
           <table className="table">
             <thead>
-              <tr><th>Template</th><th>Summary</th><th>Cost</th><th>Status</th></tr>
+              <tr><th>Type</th><th>Memory</th><th>Owner</th><th>Source</th></tr>
             </thead>
             <tbody>
-              <tr><td>research_agent</td><td>Robotics education market scan</td><td>$0.31</td><td>completed</td></tr>
-              <tr><td>writer_agent</td><td>Outreach email draft</td><td>$0.07</td><td>completed</td></tr>
+              {memoryRows.map((row) => (
+                <tr key={row.title}>
+                  <td><span className="badge">{row.type}</span></td>
+                  <td><strong>{row.title}</strong></td>
+                  <td>{row.owner}</td>
+                  <td className="muted">{row.source}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </section>
         <aside className="panel">
-          <div className="panel-header"><span className="panel-title">Selected summary</span></div>
+          <div className="panel-header"><span className="panel-title">Selected memory</span></div>
           <div className="panel-body stack">
-            <p>Terminal session summary, token count, cost, child sessions, and Langfuse trace link appear here.</p>
-            <span className="badge cancelled">Layer 2/3 coming later</span>
+            <p>Memory starts as session summaries and staff reports. Later layers add topic digests and manager preference facts.</p>
+            <span className="badge cancelled">Layer 2/3 placeholders</span>
           </div>
         </aside>
       </div>
     </PageScaffold>
   );
 }
-

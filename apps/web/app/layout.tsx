@@ -3,8 +3,8 @@ import "./globals.css";
 import { AppShell } from "../components/AppShell";
 
 export const metadata = {
-  title: "Solo Agent Platform",
-  description: "Stage 1 agent control plane",
+  title: "Mibusy Virtual Team",
+  description: "Manager workspace for delegating work to a virtual AI team",
 };
 
 export default function RootLayout({

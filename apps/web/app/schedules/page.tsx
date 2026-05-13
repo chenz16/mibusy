@@ -1,38 +1,40 @@
 import { Plus } from "lucide-react";
 
 import { PageScaffold } from "../../components/PageScaffold";
-import { schedules } from "../../lib/ui-data";
+import { rhythms } from "../../lib/ui-data";
 
 export default function SchedulesPage() {
   return (
     <PageScaffold
-      title="Schedules"
-      subtitle="Cron-triggered agent sessions with failure tracking and automatic disable rules."
-      action={<button className="button" type="button"><Plus size={15} />New schedule</button>}
+      title="Operating Rhythms"
+      subtitle="Recurring virtual team routines for briefings, scans, follow-ups, and exception reporting."
+      action={<button className="button" type="button"><Plus size={15} />New rhythm</button>}
     >
       <section className="panel" style={{ marginTop: 18 }}>
         <div className="panel-header">
-          <span className="panel-title">Scheduled runs</span>
-          <span className="badge failed">1 disabled</span>
+          <span className="panel-title">Recurring routines</span>
+          <span className="badge failed">1 paused</span>
         </div>
         <table className="table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Cron</th>
+              <th>Rhythm</th>
+              <th>Owner</th>
+              <th>Cadence</th>
               <th>Status</th>
-              <th>Last run</th>
-              <th>Next run</th>
+              <th>Last</th>
+              <th>Next</th>
             </tr>
           </thead>
           <tbody>
-            {schedules.map((schedule) => (
-              <tr key={schedule.name}>
-                <td><strong>{schedule.name}</strong><div className="muted">template + prompt variables</div></td>
-                <td>{schedule.cron}</td>
-                <td><span className={`badge ${schedule.status === "disabled" ? "failed" : "completed"}`}>{schedule.status}</span></td>
-                <td>{schedule.last}</td>
-                <td>{schedule.next}</td>
+            {rhythms.map((rhythm) => (
+              <tr key={rhythm.name}>
+                <td><strong>{rhythm.name}</strong><div className="muted">briefing instructions + escalation rules</div></td>
+                <td>{rhythm.owner}</td>
+                <td>{rhythm.cadence}</td>
+                <td><span className={`badge ${rhythm.status === "disabled" ? "failed" : "completed"}`}>{rhythm.status}</span></td>
+                <td>{rhythm.last}</td>
+                <td>{rhythm.next}</td>
               </tr>
             ))}
           </tbody>
@@ -41,4 +43,3 @@ export default function SchedulesPage() {
     </PageScaffold>
   );
 }
-
