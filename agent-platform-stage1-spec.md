@@ -1941,6 +1941,39 @@ CREATE TABLE invitations (
 - V7: Magic link 登录 + bootstrap 流程跑通,新用户 30 秒内能进 dashboard
 - V8: bootstrap 异常路径(邀请码已过期 / 已使用 / 无效)正确返回错误,不创建 user row
 
+**Week 0 简化验证版(当前实现范围):**
+
+为了先验证平台自有数据流,Week 0 允许先不接 Supabase Auth/magic link,实现一个可测试的 bootstrap thin slice:
+
+1. `/api/invite/{code}` 直接校验 `invitations` 表,返回 invite 信息,并设置 `pending_invite` httpOnly cookie。
+2. `/invite/{code}` 前端页面加载时调用 `/api/invite/{code}`,展示邮箱输入框和 invite 元数据。
+3. 用户提交邮箱后,前端直接调用 `/api/auth/bootstrap`。
+4. `/api/auth/bootstrap` 从 `pending_invite` cookie 读取 code,校验 invite 未过期/未使用且邮箱匹配。
+5. Bootstrap endpoint 在单个事务内创建 `tenants` row、创建 `users` row、继承 `invitation.platform_role`,并标记 invitation consumed。
+6. 返回 JSON 结果并清除 `pending_invite` cookie。
+
+这个简化版不发送 magic link,不调用 `supabase.auth.refreshSession()`,也不验证真实 JWT claim 刷新。它只验证 G.1 的核心 DB 不变量和 cookie 传递机制:
+
+- 合法 invite 能创建 tenant/user。
+- 新 user 在自己 tenant 内是 `role = 'owner'`。
+- 新 user 的平台角色来自 `invitations.platform_role`。
+- invitation 会被消费,不能重复使用。
+- 无效/过期/已使用 invite 不创建脏数据。
+
+**Week 0 简化版测试方式:**
+
+- DB/API harness: 在有 Postgres/pgvector 的环境中运行 `pnpm db:preflight && pnpm db:migrate && pnpm spike:db-all && pnpm spike:web-api`。
+- GitHub Actions: 运行 `.github/workflows/db-spike.yml`,当前通过 run `25440165924`。
+- 前端 build: `pnpm verify:offline` 必须通过,并确认 Next build 输出包含 `ƒ /invite/[code]`。
+- 手动页面测试: 准备一条有效 `invitations` 记录后,打开 `/invite/{code}`,提交匹配邮箱,应看到 bootstrap success;再次提交同 code 应失败。
+
+**升级到完整方案的验收条件:**
+
+- `/invite/{code}` 提交邮箱后改为触发 Supabase magic link。
+- Magic link 回跳后由临时 JWT 进入 `/api/auth/bootstrap`。
+- Bootstrap 完成后调用 refresh session,新 JWT 包含 `tenant_id` claim。
+- 前端从 bootstrap 成功页自动跳转到 dashboard。
+
 ---
 
 ### G.2 IO-002 LISTEN/NOTIFY 在 Vercel Serverless 上的可行性
