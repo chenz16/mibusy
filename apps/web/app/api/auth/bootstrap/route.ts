@@ -32,6 +32,20 @@ function normalizeUserId(value: unknown) {
 
 export const dynamic = "force-dynamic";
 
+function clearInviteCookie(request: NextRequest) {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const secure = request.nextUrl.protocol === "https:" || forwardedProto === "https";
+  const attributes = [
+    "pending_invite=",
+    "HttpOnly",
+    "SameSite=Lax",
+    "Max-Age=0",
+    "Path=/",
+  ];
+  if (secure) attributes.splice(2, 0, "Secure");
+  return attributes.join("; ");
+}
+
 export async function POST(request: NextRequest) {
   let body: BootstrapBody;
   try {
@@ -119,10 +133,7 @@ export async function POST(request: NextRequest) {
       userId: result.userId,
       platformRole: result.platformRole,
     });
-    response.headers.append(
-      "Set-Cookie",
-      "pending_invite=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/",
-    );
+    response.headers.append("Set-Cookie", clearInviteCookie(request));
     return response;
   } catch (error) {
     return Response.json(

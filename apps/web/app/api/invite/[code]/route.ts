@@ -11,8 +11,22 @@ type InviteRow = {
 
 export const dynamic = "force-dynamic";
 
+function inviteCookie(code: string, request: NextRequest) {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const secure = request.nextUrl.protocol === "https:" || forwardedProto === "https";
+  const attributes = [
+    `pending_invite=${encodeURIComponent(code)}`,
+    "HttpOnly",
+    "SameSite=Lax",
+    "Max-Age=900",
+    "Path=/",
+  ];
+  if (secure) attributes.splice(2, 0, "Secure");
+  return attributes.join("; ");
+}
+
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
@@ -44,10 +58,7 @@ export async function GET(
         expiresAt: invite.expires_at.toISOString(),
       },
     });
-    response.headers.append(
-      "Set-Cookie",
-      `pending_invite=${encodeURIComponent(code)}; HttpOnly; Secure; SameSite=Lax; Max-Age=900; Path=/`,
-    );
+    response.headers.append("Set-Cookie", inviteCookie(code, request));
     return response;
   } catch (error) {
     return Response.json(
@@ -56,4 +67,3 @@ export async function GET(
     );
   }
 }
-
