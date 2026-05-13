@@ -8,6 +8,10 @@ Use the v2 product documents as the current implementation target:
 - `docs/product/v2-boardroom-mobile-ui-design.md`
 - `docs/product/v2-folder-sharing-and-context-permissions.md`
 
+Executable MVP slice:
+
+- `docs/implementation/v2-mvp-build-plan.md`
+
 Build Mibusy as a product control plane on top of Hermes Agent as the execution foundation.
 
 The product should not become a fork of Hermes. Hermes remains the runtime layer. Mibusy owns the company model, Desk model, staff roster, assignments, approvals, budgets, event log, and UI.
