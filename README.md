@@ -27,6 +27,13 @@ MiBusy organizes work around a small owner-facing team:
 
 The system should stay shallow for the owner. More complexity should come from more humans, more Desks, and better shared context, not an infinite virtual management hierarchy.
 
+MiBusy can be used by one person or by a company:
+
+- **Personal mode**: one owner runs a simple local Desk with a small set of trusted staff. The UI stays intentionally flat: the owner manages work, decisions, schedules, files, and deliverables.
+- **Company mode**: multiple Desks or app instances can be connected. Each Desk can stay simple locally, while the company gains complexity through cascading work between Desks, shared files, shared context, permissions, skills, and delivered artifacts.
+
+This cascading model is the preferred way to scale. Instead of making one app expose a deep virtual org chart, a Desk can hand work to another Desk or human-operated app, share the needed folders/context, and receive a concrete deliverable back. Local design remains minimal; system complexity grows through app-to-app coordination and file/context sharing.
+
 ## Quick Start
 
 Install dependencies:
