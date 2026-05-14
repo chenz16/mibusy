@@ -6,7 +6,7 @@ import { computeNextRun, describeCron } from "../../../../lib/cron";
 
 export const dynamic = "force-dynamic";
 
-const CEO_DESK_ID = "00000000-0000-0000-0000-000000000001";
+const CEO_DESK_ID = process.env.MIBUSY_DESK_ID || "00000000-0000-0000-0000-000000000001";
 
 const SPECIALIST_IDS: Record<string, string> = {
   Nova:      "00000000-0000-0000-0001-000000000002",

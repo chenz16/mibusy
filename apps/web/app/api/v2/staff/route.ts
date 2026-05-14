@@ -4,6 +4,8 @@ import { getStaff } from "../../../../lib/v2-data";
 
 export const dynamic = "force-dynamic";
 
+const DESK_ID = process.env.MIBUSY_DESK_ID || "00000000-0000-0000-0000-000000000001";
+
 export async function GET() {
   const staff = await getStaff();
   return NextResponse.json(staff);
@@ -37,13 +39,9 @@ export async function POST(req: NextRequest) {
     try {
       const result = await client.query(
         `INSERT INTO virtual_agents (workspace_id, desk_id, name, role, kind, status)
-         VALUES (
-           '00000000-0000-0000-0000-000000000001',
-           '00000000-0000-0000-0000-000000000001',
-           $1, $2, $3, 'active'
-         )
+         VALUES ($1::uuid, $2::uuid, $3, $4, $5, 'active')
          RETURNING id::text, name, role, kind, status`,
-        [name, role, kind],
+        [DESK_ID, DESK_ID, name, role, kind],
       );
       return NextResponse.json(result.rows[0], { status: 201 });
     } finally {

@@ -1,55 +1,36 @@
-import { MessageSquare, Radio } from "lucide-react";
+import { getDeliverables, getRunningAssignments } from "../../lib/v2-data";
+import { DeliveryCenter } from "../../components/DeliveryCenter";
+import { SchedulesPanel } from "../../components/SchedulesPanel";
+import { RunningTasksPanel } from "../../components/RunningTasksPanel";
 
-import { PageScaffold } from "../../components/PageScaffold";
-import { meetingThread, meetings } from "../../lib/ui-data";
+export const dynamic = "force-dynamic";
 
-export default function ObservePage() {
-  const live = meetings[0];
+export default async function ObservePage() {
+  const [deliverables, running] = await Promise.all([
+    getDeliverables(),
+    getRunningAssignments(),
+  ]);
 
   return (
-    <PageScaffold
-      title="会议室"
-      subtitle="任务驱动的多员工讨论。你只需要进来做决策、纠偏或要求交付。"
-      action={<span className="badge running">1 live</span>}
-    >
-      <section className="stack">
-        {meetings.map((meeting, index) => (
-          <article className={`meeting-card ${index === 0 ? "highlight" : ""}`} key={meeting.title}>
-            <div className="toolbar" style={{ justifyContent: "space-between" }}>
-              <strong>{meeting.title}</strong>
-              <span className={`badge ${meeting.status === "Live" ? "running" : "awaiting"}`}>{meeting.status}</span>
-            </div>
-            <div className="muted">{meeting.task} · owner {meeting.owner}</div>
-            <div>{meeting.summary}</div>
-            <div className="toolbar">
-              {meeting.agents.map((agent) => <span className="badge" key={agent}>{agent}</span>)}
-            </div>
-          </article>
-        ))}
-      </section>
+    <section className="page">
+      <h1 style={{
+        fontFamily: "var(--serif)", fontSize: 32, fontWeight: 500,
+        margin: "0 0 4px", color: "var(--ink)",
+      }}>
+        交付中心
+      </h1>
+      <p style={{ color: "var(--ink-3)", fontSize: 13, margin: "4px 0 20px" }}>
+        即将到来的定时任务，和已经产出的交付物。
+      </p>
 
-      <section className="panel" style={{ marginTop: 16 }}>
-        <div className="panel-header">
-          <span className="panel-title"><Radio size={16} /> {live.title}</span>
-          <span className="badge running">live thread</span>
-        </div>
-        <div className="panel-body message-list">
-          {meetingThread.map((item) => (
-            <div className="message" key={`${item.speaker}-${item.text}`}>
-              <strong>{item.speaker}</strong>
-              <div>{item.text}</div>
-            </div>
-          ))}
-          <div className="message user">
-            <strong>CEO decision needed</strong>
-            <div>Approve paid sources for top 6 only, or force a free-source first pass?</div>
-          </div>
-          <div className="toolbar">
-            <button className="button" type="button"><MessageSquare size={15} />批准 top 6</button>
-            <button className="button secondary" type="button">先免费源</button>
-          </div>
-        </div>
-      </section>
-    </PageScaffold>
+      {/* Active work — in-flight deliverables */}
+      <RunningTasksPanel initialItems={running} />
+
+      {/* Scheduled tasks — future deliverables */}
+      <SchedulesPanel />
+
+      {/* Past deliverables */}
+      <DeliveryCenter initialItems={deliverables} />
+    </section>
   );
 }

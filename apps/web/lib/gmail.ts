@@ -15,7 +15,7 @@
 
 import { Client } from "pg";
 
-const CEO_DESK_ID = "00000000-0000-0000-0000-000000000001";
+const CEO_DESK_ID = process.env.MIBUSY_DESK_ID || "00000000-0000-0000-0000-000000000001";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/gmail.compose",

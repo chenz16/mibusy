@@ -50,8 +50,9 @@ export async function getStaff(): Promise<StaffRow[]> {
       const result = await client.query<StaffRow>(
         `SELECT id::text, name, role, kind, status, is_system
          FROM virtual_agents
-         WHERE status = 'active'
+         WHERE status = 'active' AND desk_id = $1::uuid
          ORDER BY is_system ASC, created_at ASC`,
+        [CEO_DESK_ID],
       );
       return result.rows;
     });
@@ -486,7 +487,10 @@ export async function deleteAssignment(id: string): Promise<boolean> {
   }
 }
 
-const CEO_DESK_ID = "00000000-0000-0000-0000-000000000001";
+// In V3, each Mibusy instance has its own CEO desk. The desk_id is read from
+// MIBUSY_DESK_ID env var so two instances on the same DB can coexist by
+// pointing at different desks. Default preserves v2 single-instance behavior.
+const CEO_DESK_ID = process.env.MIBUSY_DESK_ID || "00000000-0000-0000-0000-000000000001";
 const ATLAS_ID = "00000000-0000-0000-0001-000000000001";
 
 export async function createAssignment({

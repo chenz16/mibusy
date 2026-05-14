@@ -25,15 +25,21 @@ import {
 
 export const mobileTabs = [
   { href: "/chat", label: "今日", icon: Home },
-  { href: "/inbox", label: "待审", icon: Inbox, badge: "3" },
   { href: "/templates", label: "团队", icon: UsersRound },
-  { href: "/observe", label: "会议室", icon: MessageSquare, badge: "1" },
+  { href: "/observe", label: "交付中心", icon: Activity },
+  { href: "/meeting", label: "会议室", icon: MessageSquare },
 ];
 
 export const navGroups = [
   {
     label: "Boardroom",
     items: mobileTabs,
+  },
+  {
+    label: "Archive",
+    items: [
+      { href: "/inbox", label: "待审档案", icon: Inbox },
+    ],
   },
   {
     label: "More",
