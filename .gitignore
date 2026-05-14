@@ -17,3 +17,6 @@ apps/web/.playwright-cli/
 layout_*.png
 screenshot_*.py
 screenshots/
+
+# V3 peer instance — runtime copy of apps/web (kept locally for dev:peer)
+apps/web-peer/

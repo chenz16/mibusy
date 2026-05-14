@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Client } from "pg";
 import { createGmailDraft, gmailSearchImportant, loadGmailConfig } from "../../../../lib/gmail";
-import { hireAgent, dismissAgent, createCeoSkill, getWorkspaceSnapshot, getCeoSkillBody, writeMemory, listRecentMemory, searchMemory, createSchedule, createMeeting } from "../../../../lib/v2-data";
+import { hireAgent, dismissAgent, createCeoSkill, getWorkspaceSnapshot, getCeoSkillBody, writeMemory, listRecentMemory, searchMemory, createSchedule, createMeeting, setAgentPeerConfig, updateAgent } from "../../../../lib/v2-data";
 import { computeNextRun, describeCron } from "../../../../lib/cron";
 
 export const dynamic = "force-dynamic";
@@ -175,6 +175,24 @@ const TOOLS = [
           reply: { type: "string", description: "给 CEO 的简短确认" },
         },
         required: ["name", "description", "body", "reply"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "configure_peer_agent",
+      description: "把某个员工设为 façade 模式 —— 任务转发给对端 Mibusy 实例。用于 CEO 说『让小王变成 X 的代理』『把 Y 接到对端 URL 的 instance』之类。\n\n要求 CEO 给：员工名字 / 对端 URL / 对端 token。如果 CEO 没给 token 就回复『需要对端实例给你一个 peer_token，找他要』，不要瞎调。",
+      parameters: {
+        type: "object",
+        properties: {
+          agent_name: { type: "string", description: "现有员工名字（自己雇的，最好不是 system agent）" },
+          peer_url: { type: "string", description: "对端实例的 URL，必须 http:// 或 https://" },
+          peer_token: { type: "string", description: "对端给的 peer_token（UUID）" },
+          counterparty_label: { type: "string", description: "（可选）对端的人/组织标签，显示用" },
+          reply: { type: "string", description: "给 CEO 的简短回复" },
+        },
+        required: ["agent_name", "peer_url", "peer_token", "reply"],
       },
     },
   },
@@ -693,6 +711,39 @@ export async function POST(req: NextRequest) {
         content: `${a.reply}\n\n📚 **${a.name}** 已沉淀\n${a.description}\n\n_预览：${preview}${a.body.length > 140 ? "…" : ""}_\n\n在 CEO 配置（👑）→ 高级设置 里查看全文 / 启用禁用 / 删除。`,
         skillCreated: true,
         skillId: created.id,
+      });
+    }
+
+    if (fnName === "configure_peer_agent") {
+      const a = args as { agent_name: string; peer_url: string; peer_token: string; counterparty_label?: string; reply: string };
+      const snap = await getWorkspaceSnapshot();
+      const match = snap?.team.find(t => t.name === a.agent_name);
+      if (!match) {
+        return NextResponse.json({ content: `找不到员工『${a.agent_name}』。先雇 ta 再设代理。` });
+      }
+      if (!/^https?:\/\//.test(a.peer_url)) {
+        return NextResponse.json({ content: `URL 必须以 http:// 或 https:// 开头。` });
+      }
+      const conn = await setAgentPeerConfig({
+        agent_id: match.id,
+        peer_url: a.peer_url.replace(/\/$/, ""),
+        peer_token: a.peer_token,
+        counterparty_label: a.counterparty_label,
+      });
+      if (!conn) {
+        return NextResponse.json({ content: `配置失败 — 检查 token 格式（应该是 UUID）` });
+      }
+      await updateAgent(match.id, { agent_mode: "facade" });
+      writeMemory({
+        kind: "decision",
+        content: `${a.agent_name} 设为代理：${a.counterparty_label || a.peer_url}`,
+        tags: ["peer", "facade"],
+        source: "auto_decision",
+        ref_id: match.id,
+      }).catch(() => {});
+      return NextResponse.json({
+        content: `${a.reply}\n\n🔗 **${a.agent_name}** 现在是 façade 代理\n对端：${a.counterparty_label || a.peer_url}\n下次派任务给 ta 会直接转发到对端实例。`,
+        peerConfigured: true,
       });
     }
 

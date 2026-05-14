@@ -9,6 +9,7 @@ import { AssignTaskButton } from "./AssignTaskButton";
 import { BudgetRow } from "./BudgetRow";
 import { ConnectionsList } from "./ConnectionsList";
 import { AgentTaskStrip } from "./AgentTaskStrip";
+import { FacadeConfig } from "./FacadeConfig";
 
 const TONE_MAP: Record<string, string> = {
   Atlas: "#B5892A", Nova: "#2E7D52", Ledger: "#1A5E8A",
@@ -286,6 +287,7 @@ function ManageDrawer({
   onSaveField,
   onRebuild,
   onDismiss,
+  onReloadDetail,
 }: {
   agent: StaffRow;
   detail: AgentDetail | null;
@@ -304,6 +306,7 @@ function ManageDrawer({
   onSaveField: (fields: { system_prompt?: string; role?: string; proxy_agent_id?: string | null; monthly_budget?: number | null }) => Promise<void>;
   onRebuild: () => void;
   onDismiss: () => void;
+  onReloadDetail: () => void;
 }) {
   return (
     <div style={{
@@ -407,6 +410,18 @@ function ManageDrawer({
             节点 30 分钟无响应时由代理接管任务
           </div>
         </div>
+
+        {/* Façade mode (V3) — config first because it changes the meaning of everything below */}
+        {detail && (
+          <FacadeConfig
+            agentId={agent.id}
+            agentName={agent.name}
+            agentMode={detail.agent_mode ?? "ai"}
+            peerUrl={detail.peer_url}
+            peerToken={detail.peer_token}
+            onChange={onReloadDetail}
+          />
+        )}
 
         <ConnectionsList agentId={agent.id} agentName={agent.name} />
 
@@ -682,6 +697,10 @@ export function AgentSheet({
             onSaveField={saveField}
             onRebuild={handleRebuild}
             onDismiss={handleDismiss}
+            onReloadDetail={() => {
+              // re-fetch detail (triggers useEffect indirectly via location)
+              fetch(`/api/v2/agents/${agent.id}`).then(r => r.ok ? r.json() : null).then(d => { if (d) setDetail(d); });
+            }}
           />
         )}
       </div>
