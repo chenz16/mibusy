@@ -10,3 +10,10 @@ coverage/
 *.log
 *.tsbuildinfo
 frameworks/hermes/hermes-agent/
+
+# QA / Playwright local artifacts
+apps/web/.qa-screenshots/
+apps/web/.playwright-cli/
+layout_*.png
+screenshot_*.py
+screenshots/

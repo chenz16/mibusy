@@ -3,6 +3,7 @@
 import { Crown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { mobileTabs } from "../lib/ui-data";
 
@@ -13,6 +14,14 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [ceoName, setCeoName] = useState<string>("我");
+
+  useEffect(() => {
+    fetch("/api/v2/ceo")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.name) setCeoName(d.name); })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="app-shell">
@@ -20,9 +29,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="phone-status">
           <div className="phone-brand">
             <span className="brand-mark"><Crown size={15} /></span>
-            <span>Boardroom</span>
+            <span>{ceoName === "我" ? "我的 Boardroom" : `${ceoName} 的 Boardroom`}</span>
           </div>
-          <div className="phone-context">CEO MODE</div>
         </header>
         <main className="main">{children}</main>
         <nav className="bottom-tabs" aria-label="Boardroom mobile navigation">
@@ -33,7 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link className={`tab-link ${active ? "active" : ""}`} href={item.href} key={item.href}>
                 <Icon size={20} />
                 <span>{item.label}</span>
-                {item.badge ? <span className="tab-badge">{item.badge}</span> : null}
+                {"badge" in item && item.badge ? <span className="tab-badge">{item.badge as string}</span> : null}
               </Link>
             );
           })}
